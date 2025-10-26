@@ -1,0 +1,31 @@
+<!-- todo/templates/todo/users/detail.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ profile.username }}{% endblock %}
+
+{% block content %}
+<h2>{{ profile.username }}</h2>
+<p><strong>Роль:</strong> {{ profile.get_role_display }}</p>
+<p><strong>Email:</strong> {{ profile.email|default:"—" }}</p>
+<p><strong>Telegram ID:</strong> {{ profile.telegram_id|default:"Не привязан" }}</p>
+
+<h3>Созданные задачи</h3>
+<ul>
+{% for task in profile.created_tasks.all %}
+  <li><a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a></li>
+{% empty %}
+  <li>Нет созданных задач</li>
+{% endfor %}
+</ul>
+
+<h3>Назначенные задачи</h3>
+<ul>
+{% for task in profile.tasks.all %}
+  <li><a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a> ({{ task.get_status_display }})</li>
+{% empty %}
+  <li>Нет назначенных задач</li>
+{% endfor %}
+</ul>
+
+<a href="{% url 'todo:user_list' %}">← Назад к списку</a>
+{% endblock %}

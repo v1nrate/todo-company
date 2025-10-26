@@ -1,0 +1,34 @@
+<!-- todo/templates/todo/history/list.html -->
+{% extends "base.html" %}
+
+{% block title %}История изменений{% endblock %}
+
+{% block content %}
+<h2>История изменений</h2>
+<ul class="object-list">
+{% for entry in histories %}
+  <li>
+    <a href="{% url 'todo:history_detail' entry.pk %}">
+      {{ entry.task.title }} — {{ entry.field_changed }}
+    </a>
+    ({{ entry.changed_at|date:"d.m.Y H:i" }})
+  </li>
+{% empty %}
+  <li>Нет записей</li>
+{% endfor %}
+</ul>
+
+{% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1">&laquo; первая</a>
+      <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+    {% endif %}
+    <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

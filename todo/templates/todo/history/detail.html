@@ -1,0 +1,18 @@
+<!-- todo/templates/todo/history/detail.html -->
+{% extends "base.html" %}
+
+{% block title %}Изменение: {{ history.field_changed }}{% endblock %}
+
+{% block content %}
+<h2>Изменение поля "{{ history.field_changed }}"</h2>
+<p><strong>Задача:</strong> <a href="{% url 'todo:task_detail' history.task.pk %}">{{ history.task.title }}</a></p>
+<p><strong>Изменил:</strong> {{ history.changed_by.username|default:"Система" }}</p>
+<p><strong>Дата:</strong> {{ history.changed_at }}</p>
+<p><strong>Старое значение:</strong> <code>{{ history.old_value|default:"—" }}</code></p>
+<p><strong>Новое значение:</strong> <code>{{ history.new_value|default:"—" }}</code></p>
+{% if history.reason %}
+  <p><strong>Причина:</strong> {{ history.reason }}</p>
+{% endif %}
+
+<a href="{% url 'todo:history_list' %}">← Назад к списку</a>
+{% endblock %}

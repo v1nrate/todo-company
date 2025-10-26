@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}СЭТ To-Do List{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1><a href="{% url 'todo:task_list' %}">Корпоративный To-Do List</a></h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
+                <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
+                <li><a href="{% url 'todo:history_list' %}">История</a></li>
+                <li><a href="{% url 'todo:telegram_user_list' %}">Telegram</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Корпоративный To-Do List</p>
+    </footer>
+</body>
+</html>

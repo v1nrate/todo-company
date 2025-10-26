@@ -1,0 +1,30 @@
+<!-- todo/templates/todo/tasks/detail.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }}{% endblock %}
+
+{% block content %}
+<h2>{{ task.title }}</h2>
+<p><strong>Исполнитель:</strong> {{ task.assignee.username }}</p>
+<p><strong>Создал:</strong> {{ task.created_by.username|default:"—"}} </p>
+<p><strong>Статус:</strong> {{ task.get_status_display }}</p>
+<p><strong>Приоритет:</strong> {{ task.get_priority_display }}</p>
+<p><strong>Дедлайн:</strong> {{ task.deadline }}</p>
+<p><strong>Создана:</strong> {{ task.created_at }}</p>
+<p><strong>Описание:</strong> {{ task.description|linebreaks|default:"—" }}</p>
+
+<h3>История изменений</h3>
+<ul>
+{% for entry in task.history.all %}
+  <li>
+    <em>{{ entry.changed_at|date:"d.m.Y H:i" }}</em>:
+    {{ entry.field_changed }} → "{{ entry.old_value }}" → "{{ entry.new_value }}"
+    {% if entry.reason %} (Причина: {{ entry.reason }}){% endif %}
+  </li>
+{% empty %}
+  <li>Изменений нет</li>
+{% endfor %}
+</ul>
+
+<a href="{% url 'todo:task_list' %}">← Назад к списку</a>
+{% endblock %}
