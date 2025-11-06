@@ -1,7 +1,8 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView
+from todo.forms import UserCreateForm, TaskForm
 from .models import UserModel, TaskModel, TaskHistoryModel, TelegramUserModel
-from django import forms
+from django.forms.widgets import DateTimeInput
 
 # Create your views here.
 class UserListView(ListView):
@@ -15,13 +16,6 @@ class UserDetailView(DetailView):
     model = UserModel
     template_name = 'todo/users/detail.html'
     context_object_name = 'profile'
-    
-# Форма для создания пользователя (без пароля вручную — только через админку или register)
-class UserCreateForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
-    class Meta:
-        model = UserModel
-        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'password']
     
 class UserCreateView(CreateView):
     model = UserModel
@@ -49,10 +43,11 @@ class TaskDetailView(DetailView):
     
 class TaskCreateView(CreateView):
     model = TaskModel
-    fields = ['title', 'description', 'assignee', 'created_by', 'deadline', 'priority', 'status']
     template_name = 'todo/tasks/create.html'
     success_url = reverse_lazy('todo:task_list')
+    form_class = TaskForm
 
+    
 class TaskHistoryListView(ListView):
     model = TaskHistoryModel
     template_name = 'todo/history/list.html'
@@ -81,4 +76,4 @@ class TelegramUserCreateView(CreateView):
     model = TelegramUserModel
     fields = ['user', 'telegram_id', 'is_active']
     template_name = 'todo/telegram_users/create.html'
-    success_url = 'todo:telegram_user_list'
+    success_url = reverse_lazy('todo:telegram_user_list')
