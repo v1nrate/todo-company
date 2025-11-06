@@ -5,6 +5,7 @@
 
 {% block content %}
 <h2>Пользователи</h2>
+<a href="{% url 'todo:user_create' %}" class="btn-create">Добавить пользователя</a>
 <ul class="object-list">
 {% for user in users %}
   <li>

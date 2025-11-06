@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Новый пользователь{% endblock %}
+
+{% block content %}
+<h2>Создать пользователя</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Создать</button>
+    <a href="{% url 'todo:user_list' %}">Отмена</a>
+</form>
+{% endblock %}

@@ -5,6 +5,7 @@
 
 {% block content %}
 <h2>Telegram-пользователи</h2>
+<a href="{% url 'todo:telegram_user_create' %}" class="btn-create">Привязать Telegram</a>
 <ul class="object-list">
 {% for tg_user in telegram_users %}
   <li>

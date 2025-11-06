@@ -5,6 +5,7 @@
 
 {% block content %}
 <h2>Задачи</h2>
+<a href="{% url 'todo:tasks_create' %}" class="btn-create">Добавить задачу</a>
 <ul class="object-list">
 {% for task in tasks %}
   <li>

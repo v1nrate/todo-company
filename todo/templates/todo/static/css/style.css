@@ -66,6 +66,21 @@ h2 {
     font-size: 1.4rem;
 }
 
+.btn-create {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.btn-create:hover {
+    background-color: #2980b9;
+}
+
 /* Списки объектов */
 .object-list {
     list-style: none;
