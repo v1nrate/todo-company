@@ -1,26 +1,33 @@
+<!-- todo/templates/base.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}СЭТ To-Do List{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Корпоративный To-Do List{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body>
+<body class="{% if request.user.is_authenticated %}authenticated{% endif %}">
     <header>
-        <h1><a href="{% url 'todo:task_list' %}">Корпоративный To-Do List</a></h1>
-        <nav>
-            <ul>
-                <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
-                <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
-                <li><a href="{% url 'todo:history_list' %}">История</a></li>
-                <li><a href="{% url 'todo:telegram_user_list' %}">Telegram</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <h1><a href="{% url 'todo:task_list' %}">Корпоративный To-Do List</a></h1>
+            <nav>
+                <ul>
+                    <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
+                    <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
+                    <li><a href="{% url 'todo:history_list' %}">История</a></li>
+                    <li><a href="{% url 'todo:telegram_user_list' %}">Telegram</a></li>
+                    {% if request.user.is_authenticated %}
+                        <li><a href="{% url 'todo:user_detail' request.user.pk %}">Профиль</a></li>
+                        <li><a href="{% url 'logout' %}">Выход</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
     </header>
-    
-    <main>
+
+    <main class="container">
         {% block content %}
         {% endblock %}
     </main>

@@ -4,27 +4,53 @@
 {% block title %}{{ task.title }}{% endblock %}
 
 {% block content %}
-<h2>{{ task.title }}</h2>
-<p><strong>Исполнитель:</strong> {{ task.assignee.username }}</p>
-<p><strong>Создал:</strong> {{ task.created_by.username|default:"—"}} </p>
-<p><strong>Статус:</strong> {{ task.get_status_display }}</p>
-<p><strong>Приоритет:</strong> {{ task.get_priority_display }}</p>
-<p><strong>Дедлайн:</strong> {{ task.deadline }}</p>
-<p><strong>Создана:</strong> {{ task.created_at }}</p>
-<p><strong>Описание:</strong> {{ task.description|linebreaks|default:"—" }}</p>
+<div class="task-detail">
+    <h2>{{ task.title }}</h2>
+    <div class="task-info">
+        <div class="info-item">
+            <strong>Исполнитель:</strong> {{ task.assignee.username }}
+        </div>
+        <div class="info-item">
+            <strong>Создал:</strong> {{ task.created_by.username|default:"—" }}
+        </div>
+        <div class="info-item">
+            <strong>Статус:</strong> {{ task.get_status_display }}
+        </div>
+        <div class="info-item">
+            <strong>Приоритет:</strong> {{ task.get_priority_display }}
+        </div>
+        <div class="info-item">
+            <strong>Дедлайн:</strong> {{ task.deadline }}
+        </div>
+        <div class="info-item">
+            <strong>Создана:</strong> {{ task.created_at }}
+        </div>
+        <div class="info-item">
+            <strong>Описание:</strong> {{ task.description|linebreaks|default:"—" }}
+        </div>
+    </div>
 
-<h3>История изменений</h3>
-<ul>
-{% for entry in task.history.all %}
-  <li>
-    <em>{{ entry.changed_at|date:"d.m.Y H:i" }}</em>:
-    {{ entry.field_changed }} → "{{ entry.old_value }}" → "{{ entry.new_value }}"
-    {% if entry.reason %} (Причина: {{ entry.reason }}){% endif %}
-  </li>
-{% empty %}
-  <li>Изменений нет</li>
-{% endfor %}
-</ul>
+    <h3>История изменений</h3>
+    <ul class="history-list">
+    {% for entry in task.history.all %}
+        <li class="history-entry">
+            <span class="entry-time">{{ entry.changed_at|date:"d.m.Y H:i" }}</span>
+            <span class="entry-user">{{ entry.changed_by.username|default:"Система" }}</span>
+            <span class="entry-field">{{ entry.field_changed }}</span>
+            <span class="entry-change">«{{ entry.old_value|default:"—" }}» → «{{ entry.new_value|default:"—" }}»</span>
+            {% if entry.reason %}
+                <span class="entry-reason">({{ entry.reason }})</span>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li>Изменений нет</li>
+    {% endfor %}
+    </ul>
 
-<a href="{% url 'todo:task_list' %}">← Назад к списку</a>
+    <div class="task-actions">
+        <a href="{% url 'todo:task_list' %}" class="btn btn-secondary">Назад к списку</a>
+        <a href="{% url 'todo:task_update' task.pk %}" class="btn btn-warning">Редактировать</a>
+        <a href="{% url 'todo:task_delete' task.pk %}" class="btn btn-danger">Удалить</a>
+    </div>
+</div>
 {% endblock %}

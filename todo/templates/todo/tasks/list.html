@@ -4,32 +4,66 @@
 {% block title %}Задачи{% endblock %}
 
 {% block content %}
-<h2>Задачи</h2>
-<a href="{% url 'todo:task_create' %}" class="btn-create">Добавить задачу</a>
-<ul class="object-list">
-{% for task in tasks %}
-  <li>
-    <a href="{% url 'todo:task_detail' task.pk %}">
-      [{{ task.get_status_display }}] {{ task.title }}
-    </a>
-    → {{ task.assignee.username }} (до {{ task.deadline|date:"d.m.Y H:i" }})
-  </li>
-{% empty %}
-  <li>Нет задач</li>
-{% endfor %}
-</ul>
+<div class="dashboard">
+    <aside class="sidebar">
+        <h3>Меню</h3>
+        <ul>
+            <li><a href="{% url 'todo:task_list' %}" class="active">Задачи</a></li>
+            <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
+            <li><a href="{% url 'todo:history_list' %}">История</a></li>
+            <li><a href="{% url 'todo:telegram_user_list' %}">Telegram</a></li>
+        </ul>
+    </aside>
 
-{% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1">&laquo; первая</a>
-      <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
-    {% endif %}
-    <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
-    {% endif %}
-  </div>
-{% endif %}
+    <div class="main-content">
+        <div class="header-actions">
+            <a href="{% url 'todo:task_create' %}" class="btn btn-primary">Добавить задачу</a>
+            <div class="calendar-widget">
+                <!-- Здесь будет календарь (FullCalendar.js) -->
+                <h4>Календарь</h4>
+                <div id="calendar"></div>
+            </div>
+        </div>
+
+        <div class="tasks-list">
+            <h2>Список задач</h2>
+            <ul>
+            {% for task in tasks %}
+                <li class="task-card {% if task.status == 'completed' %}completed{% elif task.status == 'overdue' %}overdue{% endif %}">
+                    <div class="task-header">
+                        <span class="task-title">{{ task.title }}</span>
+                        <span class="task-priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                    </div>
+                    <div class="task-meta">
+                        <span>Исполнитель: {{ task.assignee.username }}</span>
+                        <span>Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}</span>
+                        <span>Статус: {{ task.get_status_display }}</span>
+                    </div>
+                    <div class="task-actions">
+                        <a href="{% url 'todo:task_detail' task.pk %}" class="btn btn-sm btn-info">Подробнее</a>
+                        <a href="{% url 'todo:task_update' task.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                        <a href="{% url 'todo:task_delete' task.pk %}" class="btn btn-sm btn-danger">Удалить</a>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="task-card">Нет задач</li>
+            {% endfor %}
+            </ul>
+        </div>
+
+        {% if is_paginated %}
+          <div class="pagination">
+            {% if page_obj.has_previous %}
+              <a href="?page=1">&laquo; первая</a>
+              <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+            {% endif %}
+            <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+              <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+            {% endif %}
+          </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

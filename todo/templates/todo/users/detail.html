@@ -4,28 +4,57 @@
 {% block title %}{{ profile.username }}{% endblock %}
 
 {% block content %}
-<h2>{{ profile.username }}</h2>
-<p><strong>Роль:</strong> {{ profile.get_role_display }}</p>
-<p><strong>Email:</strong> {{ profile.email|default:"—" }}</p>
-<p><strong>Telegram ID:</strong> {{ profile.telegram_id|default:"Не привязан" }}</p>
+<div class="profile">
+    <div class="profile-header">
+        <h2>{{ profile.username }}</h2>
+        <span class="role">{{ profile.get_role_display }}</span>
+    </div>
 
-<h3>Созданные задачи</h3>
-<ul>
-{% for task in profile.created_tasks.all %}
-  <li><a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a></li>
-{% empty %}
-  <li>Нет созданных задач</li>
-{% endfor %}
-</ul>
+    <div class="profile-stats">
+        <div class="stat-card">
+            <h4>Всего задач</h4>
+            <p>{{ profile.tasks.count }}</p>
+        </div>
+        <div class="stat-card">
+            <h4>Завершено</h4>
+            <p>{{ profile.tasks.filter(status='completed').count }}</p>
+        </div>
+        <div class="stat-card">
+            <h4>В работе</h4>
+            <p>{{ profile.tasks.filter(status='in_progress').count }}</p>
+        </div>
+        <div class="stat-card">
+            <h4>Просрочено</h4>
+            <p>{{ profile.tasks.filter(status='overdue').count }}</p>
+        </div>
+    </div>
 
-<h3>Назначенные задачи</h3>
-<ul>
-{% for task in profile.tasks.all %}
-  <li><a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a> ({{ task.get_status_display }})</li>
-{% empty %}
-  <li>Нет назначенных задач</li>
-{% endfor %}
-</ul>
+    <h3>Назначенные задачи</h3>
+    <ul class="tasks-list">
+    {% for task in profile.tasks.all %}
+        <li class="task-item">
+            <a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a>
+            ({{ task.get_status_display }})
+        </li>
+    {% empty %}
+        <li>Нет назначенных задач</li>
+    {% endfor %}
+    </ul>
 
-<a href="{% url 'todo:user_list' %}">← Назад к списку</a>
+    <h3>Созданные задачи</h3>
+    <ul class="tasks-list">
+    {% for task in profile.created_tasks.all %}
+        <li class="task-item">
+            <a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a>
+            ({{ task.get_status_display }})
+        </li>
+    {% empty %}
+        <li>Нет созданных задач</li>
+    {% endfor %}
+    </ul>
+
+    <div class="profile-actions">
+        <a href="{% url 'todo:user_list' %}" class="btn btn-secondary">Назад к списку</a>
+    </div>
+</div>
 {% endblock %}
