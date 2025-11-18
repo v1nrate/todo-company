@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import json
+from django.conf import settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -105,13 +107,16 @@ LOGIN_URL = 'todo:login'
 LOGIN_REDIRECT_URL = 'todo:task_list'
 LOGOUT_REDIRECT_URL = 'todo:task_list'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.mail.ru'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'r.g2018@mail.ru'
-EMAIL_HOST_PASSWORD = 'Nc7aFHrDShiewjJ6GElz'
-DEFAULT_FROM_EMAIL = 'r.g2018@mail.ru'
+with open("settings.json", "r", encoding="utf-8") as f:
+    settings=json.load(f)
+
+EMAIL_BACKEND = settings['smtp_BACKEND']
+EMAIL_HOST = settings['smtp_HOST']
+EMAIL_PORT = settings['smtp_PORT']
+EMAIL_USE_SSL = settings['smtp_USE_SSL']
+EMAIL_HOST_USER = settings['smtp_HOST_USER']
+EMAIL_HOST_PASSWORD = settings['smtp_HOST_PASSWORD']
+DEFAULT_FROM_EMAIL = settings['smtp_DEFAULT_FROM_EMAIL']
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
