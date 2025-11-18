@@ -101,6 +101,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'todo.UserModel'
 
+LOGIN_URL = 'todo:login'
+LOGIN_REDIRECT_URL = 'todo:task_list'
+LOGOUT_REDIRECT_URL = 'todo:task_list'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.mail.ru'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'r.g2018@mail.ru'
+EMAIL_HOST_PASSWORD = 'Nc7aFHrDShiewjJ6GElz'
+DEFAULT_FROM_EMAIL = 'r.g2018@mail.ru'
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

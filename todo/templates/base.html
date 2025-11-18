@@ -11,19 +11,12 @@
 <body class="{% if request.user.is_authenticated %}authenticated{% endif %}">
     <header>
         <div class="container">
-            <h1><a href="{% url 'todo:task_list' %}">Корпоративный To-Do List</a></h1>
-            <nav>
-                <ul>
-                    <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
-                    <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
-                    <li><a href="{% url 'todo:history_list' %}">История</a></li>
-                    <li><a href="{% url 'todo:telegram_user_list' %}">Telegram</a></li>
-                    {% if request.user.is_authenticated %}
-                        <li><a href="{% url 'todo:user_detail' request.user.pk %}">Профиль</a></li>
-                        <li><a href="{% url 'logout' %}">Выход</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
+            {% if request.user.is_authenticated %}
+                <span>Привет, {{ request.user.username }} ({{ request.user.get_role_display }})</span>
+                <a href="{% url 'todo:logout' %}">Выход</a>
+            {% else %}
+                <a href="{% url 'todo:login' %}">Вход</a>
+            {% endif %}
         </div>
     </header>
 

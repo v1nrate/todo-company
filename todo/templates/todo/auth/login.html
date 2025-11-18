@@ -1,0 +1,29 @@
+{% block title %}Авторизация{% endblock %}
+
+{% block content %}
+<div class="auth-form">
+    <h2>Войти в систему</h2>
+    {% if form.errors %}
+        <p style="color: red;">Неверное имя пользователя или пароль.</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            <label for="{{ form.username.id_for_label }}">Имя пользователя:</label>
+            {{ form.username }}
+        </div>
+        <div>
+            <label for="{{ form.password.id_for_label }}">Пароль:</label>
+            {{ form.password }}
+        </div>
+        <button type="submit">Войти</button>
+        <div>
+            <a href="{% url 'todo:register' %}">Регистрация</a>
+        </div>
+        <div>
+            <p><a href="{% url 'todo:password_reset' %}">Забыли пароль?</a></p>
+        </div>
+    </form>
+    <p><a href="{% url 'admin:index' %}">Войти как администратор</a></p>
+</div>
+{% endblock %}

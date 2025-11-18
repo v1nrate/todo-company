@@ -10,7 +10,8 @@ class UserModel(AbstractUser):
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='employee', verbose_name='Роль')
     telegram_id = models.CharField(max_length=50, blank=True, null=True, unique=True, verbose_name='Телеграм ИД')
-
+    email = models.EmailField(unique=True, verbose_name='Email')
+    
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
     

@@ -1,0 +1,7 @@
+Здравствуйте, {{ user.username }}!
+
+Пожалуйста, подтвердите ваш email, перейдя по ссылке:
+
+http://{{ domain }}{% url 'todo:activate' uidb64=uid token=token %}
+
+Спасибо!
