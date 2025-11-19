@@ -5,12 +5,11 @@
 
 {% block content %}
 <h2>Пользователи</h2>
-<a href="{% url 'todo:user_create' %}" class="btn-create">Добавить пользователя</a>
 <ul class="object-list">
 {% for user in users %}
   <li>
     <a href="{% url 'todo:user_detail' user.pk %}">
-      {{ user.username }} ({{ user.get_role_display }})
+      {{ user.first_name }} ({{ user.get_role_display }})
     </a>
     {% if user.telegram_id %} — Telegram: {{ user.telegram_id }}{% endif %}
   </li>

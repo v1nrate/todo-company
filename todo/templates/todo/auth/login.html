@@ -3,27 +3,27 @@
 {% block content %}
 <div class="auth-form">
     <h2>Войти в систему</h2>
-    {% if form.errors %}
-        <p style="color: red;">Неверное имя пользователя или пароль.</p>
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
     {% endif %}
     <form method="post">
-        {% csrf_token %}
-        <div>
-            <label for="{{ form.username.id_for_label }}">Имя пользователя:</label>
-            {{ form.username }}
-        </div>
-        <div>
-            <label for="{{ form.password.id_for_label }}">Пароль:</label>
-            {{ form.password }}
-        </div>
-        <button type="submit">Войти</button>
-        <div>
-            <a href="{% url 'todo:register' %}">Регистрация</a>
-        </div>
-        <div>
-            <p><a href="{% url 'todo:password_reset' %}">Забыли пароль?</a></p>
-        </div>
+    {% csrf_token %}
+    <div>
+        {{ form.username.label_tag }}
+        {{ form.username }}
+    </div>
+    <div>
+        {{ form.password.label_tag }}
+        {{ form.password }}
+    </div>
+    <button type="submit">Войти</button>
     </form>
+    <p><a href="{% url 'todo:register' %}">Регистрация</a></p>
+    <p><a href="{% url 'todo:password_reset' %}">Забыли пароль?</a></p>
     <p><a href="{% url 'admin:index' %}">Войти как администратор</a></p>
 </div>
 {% endblock %}

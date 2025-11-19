@@ -377,6 +377,22 @@ footer {
     border-top: 1px solid #edf2f7;
 }
 
+.alert {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
 @media (max-width: 768px) {
     .dashboard {
         flex-direction: column;

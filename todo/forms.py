@@ -1,7 +1,7 @@
 from django import forms
 from .models import UserModel, TaskModel
-from django.contrib.auth.forms import UserCreationForm
-
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth import authenticate
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -17,6 +17,30 @@ class CustomUserCreationForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+class CustomAuthenticationForm(AuthenticationForm):
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username and password:
+            self.user_cache = authenticate(
+                self.request,
+                username=username,
+                password=password
+            )
+            if self.user_cache is None:
+                raise forms.ValidationError(
+                    "Неверное имя пользователя или пароль.",
+                    code='invalid_login'
+                )
+            # Проверка: подтверждён ли email?
+            if not self.user_cache.is_active:
+                raise forms.ValidationError(
+                    "Ваш email не подтверждён. Проверьте почту и перейдите по ссылке активации.",
+                    code='inactive'
+                )
+        return self.cleaned_data
         
 class TaskForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

@@ -12,7 +12,7 @@
     <header>
         <div class="container">
             {% if request.user.is_authenticated %}
-                <span>Привет, {{ request.user.username }} ({{ request.user.get_role_display }})</span>
+                <span>Привет, {{ request.user.first_name }} ({{ request.user.get_role_display }})</span>
                 <a href="{% url 'todo:logout' %}">Выход</a>
             {% else %}
                 <a href="{% url 'todo:login' %}">Вход</a>

@@ -1,5 +1,5 @@
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView,TemplateView
 from todo.forms import CustomUserCreationForm, TaskForm
 from .models import UserModel, TaskModel, TaskHistoryModel, TelegramUserModel
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -84,6 +84,9 @@ class TelegramUserCreateView(CreateView):
     template_name = 'todo/telegram_users/create.html'
     success_url = reverse_lazy('todo:telegram_user_list')
 
+class RegistrationDoneView(TemplateView):
+    template_name = 'todo/auth/registration_done.html'
+
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -101,8 +104,7 @@ def register(request):
             to_email = form.cleaned_data.get('email')
             email = EmailMessage(mail_subject, message, to=[to_email])
             email.send()
-            messages.success(request, 'Пожалуйста, подтвердите ваш email, чтобы завершить регистрацию.')
-            return redirect('todo:login')
+            return redirect('todo:registration_done')
     else:
         form = CustomUserCreationForm()
     return render(request, 'todo/auth/register.html', {'form': form})
@@ -118,6 +120,8 @@ def activate(request, uidb64, token):
         user.is_active = True
         user.save()
         messages.success(request, 'Ваш аккаунт успешно активирован! Теперь вы можете войти.')
-        return redirect('todo:login')
+        return redirect('todo:login')  # ← редирект на вход
     else:
-        return HttpResponse('Ссылка активации недействительна!')
+        messages.error(request, 'Ссылка активации недействительна или уже использована.')
+        return redirect('todo:login')
+

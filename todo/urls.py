@@ -1,4 +1,5 @@
 from django.urls import path
+from todo.forms import CustomAuthenticationForm
 from . import views
 from django.contrib.auth import views as auth_views
 
@@ -24,11 +25,12 @@ urlpatterns = [
     path('telegram-users/create/', views.TelegramUserCreateView.as_view(), name='telegram_user_create'),
 
     # Login, Logout 
-    path('login/', auth_views.LoginView.as_view(template_name='todo/auth/login.html'), name='login'),
+    path('login/', auth_views.LoginView.as_view(template_name='todo/auth/login.html', authentication_form=CustomAuthenticationForm), name='login'),
     path('login/', auth_views.LogoutView.as_view(), name='logout'),
 
     # Registration
     path('register/', views.register, name='register'),
+    path('register/done', views.RegistrationDoneView.as_view(), name='registration_done'),
     path('activate/<uidb64>/<token>/', views.activate, name='activate'),
 
     # Сброс пароля
