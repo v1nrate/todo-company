@@ -1,0 +1,44 @@
+<!-- todo/templates/todo/tasks/update.html -->
+<!-- todo/templates/todo/tasks/update.html -->
+{% extends "base.html" %}
+{% block title %}Редактировать задачу{% endblock %}
+{% block content %}
+<h2>Редактировать задачу</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <h3>Файлы</h3>
+    <div id="file-fields">
+        <div class="file-field">
+            <label for="id_taskfile_set-0-file">Файл:</label>
+            <input type="file" name="taskfile_set-0-file" id="id_taskfile_set-0-file">
+            <input type="hidden" name="taskfile_set-0-id" id="id_taskfile_set-0-id">
+            <input type="hidden" name="taskfile_set-0-DELETE" id="id_taskfile_set-0-DELETE">
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        let fileCount = 1; // Начинаем с 1, так как первое поле уже есть
+
+        $('#add-file-btn').click(function() {
+            const newField = `
+                <div class="file-field">
+                    <label for="id_taskfile_set-${fileCount}-file">Файл:</label>
+                    <input type="file" name="taskfile_set-${fileCount}-file" id="id_taskfile_set-${fileCount}-file">
+                    <input type="hidden" name="taskfile_set-${fileCount}-id" id="id_taskfile_set-${fileCount}-id">
+                    <input type="hidden" name="taskfile_set-${fileCount}-DELETE" id="id_taskfile_set-${fileCount}-DELETE">
+                </div>
+            `;
+            $('#file-fields').append(newField);
+            fileCount++;
+        });
+    });
+    </script>
+
+    <button type="submit">Сохранить</button>
+    <a href="{% url 'todo:task_list' %}">Отмена</a>
+</form>
+{% endblock %}

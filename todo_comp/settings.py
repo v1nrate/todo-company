@@ -118,6 +118,10 @@ EMAIL_HOST_USER = settings['smtp_HOST_USER']
 EMAIL_HOST_PASSWORD = settings['smtp_HOST_PASSWORD']
 DEFAULT_FROM_EMAIL = settings['smtp_DEFAULT_FROM_EMAIL']
 
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 

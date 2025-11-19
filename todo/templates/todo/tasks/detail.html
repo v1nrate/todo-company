@@ -1,6 +1,8 @@
 <!-- todo/templates/todo/tasks/detail.html -->
 {% extends "base.html" %}
 
+{% load custom_filters %}
+
 {% block title %}{{ task.title }}{% endblock %}
 
 {% block content %}
@@ -8,10 +10,10 @@
     <h2>{{ task.title }}</h2>
     <div class="task-info">
         <div class="info-item">
-            <strong>Исполнитель:</strong> {{ task.assignee.username }}
+            <strong>Исполнитель:</strong> {{ task.assignee.first_name }}
         </div>
         <div class="info-item">
-            <strong>Создал:</strong> {{ task.created_by.username|default:"—" }}
+            <strong>Создал:</strong> {{ task.created_by.first_name|default:"—" }}
         </div>
         <div class="info-item">
             <strong>Статус:</strong> {{ task.get_status_display }}
@@ -27,6 +29,22 @@
         </div>
         <div class="info-item">
             <strong>Описание:</strong> {{ task.description|linebreaks|default:"—" }}
+        </div>
+        <div class="info-item">
+        {% if task.files.exists %}
+        <div class="info-item">
+            <strong>Файлы:</strong>
+            <ul>
+            {% for file in task.files.all %}
+                <li>
+                <a href="{{ file.file.url }}" target="_blank">
+                    Скачать {{ file.file.name|basename }}
+                </a>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
         </div>
     </div>
 

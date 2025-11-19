@@ -13,7 +13,7 @@ class UserModel(AbstractUser):
     email = models.EmailField(unique=True, verbose_name='Email')
     
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        return f"{self.first_name} ({self.get_role_display()})"
     
 class TaskModel(models.Model):
     PRIORITY_CHOICES = [
@@ -81,3 +81,15 @@ class TelegramUserModel(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.telegram_id}"
+    
+class TaskFile(models.Model):
+    task = models.ForeignKey(TaskModel, on_delete=models.CASCADE, related_name='files', verbose_name='Задача')
+    file = models.FileField(upload_to='task_files/', verbose_name='Файл')
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='Загружен')
+
+    class Meta:
+        verbose_name = 'Файл задачи'
+        verbose_name_plural = 'Файлы задач'
+
+    def __str__(self):
+        return self.file.name

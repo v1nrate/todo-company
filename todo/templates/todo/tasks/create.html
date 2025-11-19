@@ -4,9 +4,16 @@
 
 {% block content %}
 <h2>Создать задачу</h2>
-<form method="post">
+<form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
+
+    <!-- Поле для нескольких файлов -->
+    <div class="form-group">
+        <label for="id_files">Файлы:</label>
+        <input type="file" name="files" id="id_files" multiple>
+    </div>
+
     <button type="submit">Создать</button>
     <a href="{% url 'todo:task_list' %}">Отмена</a>
 </form>

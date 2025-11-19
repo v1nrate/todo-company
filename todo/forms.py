@@ -1,7 +1,8 @@
 from django import forms
-from .models import UserModel, TaskModel
+from .models import TaskFile, UserModel, TaskModel
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import authenticate
+from django.forms import inlineformset_factory
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -56,3 +57,11 @@ class TaskForm(forms.ModelForm):
     class Meta:
         model = TaskModel
         fields = ['title', 'description', 'assignee', 'created_by', 'deadline', 'priority', 'status']
+
+class TaskFileForm(forms.ModelForm):
+    class Meta:
+        model = TaskFile
+        fields = ['file']
+        widgets = {
+            'file': forms.ClearableFileInput(attrs={'multiple': True})
+        }

@@ -1,0 +1,14 @@
+<!-- todo/templates/todo/tasks/delete.html -->
+{% extends "base.html" %}
+
+{% block title %}Удалить задачу{% endblock %}
+
+{% block content %}
+<h2>Вы уверены, что хотите удалить задачу "{{ object.title }}"?</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Удалить</button>
+    <a href="{% url 'todo:task_detail' object.pk %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

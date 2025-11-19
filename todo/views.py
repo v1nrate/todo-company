@@ -1,7 +1,7 @@
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView,TemplateView
-from todo.forms import CustomUserCreationForm, TaskForm
-from .models import UserModel, TaskModel, TaskHistoryModel, TelegramUserModel
+from django.views.generic import ListView, DetailView, CreateView,TemplateView, UpdateView, DeleteView
+from todo.forms import CustomUserCreationForm, TaskFileFormSet, TaskForm
+from .models import TaskFile, UserModel, TaskModel, TaskHistoryModel, TelegramUserModel
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.contrib.sites.shortcuts import get_current_site
@@ -26,7 +26,8 @@ class UserDetailView(DetailView):
     model = UserModel
     template_name = 'todo/users/detail.html'
     context_object_name = 'profile'
-    
+
+
 class TaskListView(LoginRequiredMixin, ListView):
     model = TaskModel
     template_name = 'todo/tasks/list.html'
@@ -53,7 +54,17 @@ class TaskCreateView(CreateView):
     success_url = reverse_lazy('todo:task_list')
     form_class = TaskForm
 
-    
+    def form_valid(self, form):
+        # Сохраняем задачу
+        self.object = form.save()
+        
+        # Обрабатываем несколько файлов
+        files = self.request.FILES.getlist('files')
+        for f in files:
+            TaskFile.objects.create(task=self.object, file=f)
+        
+        return super().form_valid(form)
+  
 class TaskHistoryListView(ListView):
     model = TaskHistoryModel
     template_name = 'todo/history/list.html'
@@ -65,6 +76,36 @@ class TaskHistoryDetailView(DetailView):
     model = TaskHistoryModel
     template_name = 'todo/history/detail.html'
     context_object_name = 'history'
+
+class TaskUpdateView(UpdateView):
+    model = TaskModel
+    form_class = TaskForm
+    template_name = "todo/tasks/update.html"
+    success_url = reverse_lazy('todo:task_list')
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        if self.request.POST:
+            data['file_formset'] = TaskFileFormSet(self.request.POST, self.request.FILES, instance=self.object)
+        else:
+            data['file_formset'] = TaskFileFormSet(instance=self.object)
+        return data
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        file_formset = context['file_formset']
+        if file_formset.is_valid():
+            self.object = form.save()
+            file_formset.save()
+            return super().form_valid(form)
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+
+class TaskDeleteView(DeleteView):
+    model = TaskModel
+    template_name = "todo/tasks/delete.html"
+    success_url = reverse_lazy('todo:task_list')
+
 
 class TelegramUserListView(ListView):
     model = TelegramUserModel
@@ -84,8 +125,10 @@ class TelegramUserCreateView(CreateView):
     template_name = 'todo/telegram_users/create.html'
     success_url = reverse_lazy('todo:telegram_user_list')
 
+
 class RegistrationDoneView(TemplateView):
     template_name = 'todo/auth/registration_done.html'
+
 
 def register(request):
     if request.method == 'POST':
