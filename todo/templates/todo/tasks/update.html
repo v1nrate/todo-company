@@ -1,44 +1,61 @@
-<!-- todo/templates/todo/tasks/update.html -->
-<!-- todo/templates/todo/tasks/update.html -->
 {% extends "base.html" %}
+{% load custom_filters %}
 {% block title %}Редактировать задачу{% endblock %}
 {% block content %}
 <h2>Редактировать задачу</h2>
+
+<!-- update.html -->
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
 
-    <h3>Файлы</h3>
-    <div id="file-fields">
-        <div class="file-field">
-            <label for="id_taskfile_set-0-file">Файл:</label>
-            <input type="file" name="taskfile_set-0-file" id="id_taskfile_set-0-file">
-            <input type="hidden" name="taskfile_set-0-id" id="id_taskfile_set-0-id">
-            <input type="hidden" name="taskfile_set-0-DELETE" id="id_taskfile_set-0-DELETE">
-        </div>
+    <!-- Существующие файлы -->
+    {% if existing_files %}
+        <h3>Прикреплённые файлы</h3>
+        {% for file in existing_files %}
+            <div>
+                <a href="{{ file.file.url }}" target="_blank">
+                    {{ file.file.name|basename }}
+                </a>
+                <!-- Чекбокс для удаления -->
+                <label>
+                    <input type="checkbox" name="delete_file_{{ file.id }}" value="1">
+                    Удалить
+                </label>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Новые файлы -->
+    <div class="custom-file-upload">
+        <button type="button" id="upload-button" class="btn btn-primary">
+            📎 Прикрепить файлы
+        </button>
+        <input type="file" id="files" name="files" multiple style="display: none;">
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-    $(document).ready(function() {
-        let fileCount = 1; // Начинаем с 1, так как первое поле уже есть
-
-        $('#add-file-btn').click(function() {
-            const newField = `
-                <div class="file-field">
-                    <label for="id_taskfile_set-${fileCount}-file">Файл:</label>
-                    <input type="file" name="taskfile_set-${fileCount}-file" id="id_taskfile_set-${fileCount}-file">
-                    <input type="hidden" name="taskfile_set-${fileCount}-id" id="id_taskfile_set-${fileCount}-id">
-                    <input type="hidden" name="taskfile_set-${fileCount}-DELETE" id="id_taskfile_set-${fileCount}-DELETE">
-                </div>
-            `;
-            $('#file-fields').append(newField);
-            fileCount++;
-        });
-    });
-    </script>
+    <ul id="file-list"></ul>
 
     <button type="submit">Сохранить</button>
-    <a href="{% url 'todo:task_list' %}">Отмена</a>
+    <a href="{% url 'todo:task_detail' object.pk %}">Отмена</a>
 </form>
+
+<script>
+document.getElementById('upload-button').addEventListener('click', function() {
+    document.getElementById('files').click();
+});
+
+document.getElementById('files').addEventListener('change', function(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+        let fileList = '';
+        for (let i = 0; i < files.length; i++) {
+            fileList += '<li>' + files[i].name + '</li>';
+        }
+        document.getElementById('file-list').innerHTML = '<h4>Новые файлы:</h4><ul>' + fileList + '</ul>';
+        // Меняем текст кнопки, чтобы было понятно, что файлы выбраны
+        document.getElementById('upload-button').textContent = '📎 Добавить ещё файлы';
+    }
+});
+</script>
 {% endblock %}

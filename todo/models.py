@@ -9,7 +9,6 @@ class UserModel(AbstractUser):
         ('manager', 'Руководитель'),
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='employee', verbose_name='Роль')
-    telegram_id = models.CharField(max_length=50, blank=True, null=True, unique=True, verbose_name='Телеграм ИД')
     email = models.EmailField(unique=True, verbose_name='Email')
     
     def __str__(self):
@@ -86,10 +85,6 @@ class TaskFile(models.Model):
     task = models.ForeignKey(TaskModel, on_delete=models.CASCADE, related_name='files', verbose_name='Задача')
     file = models.FileField(upload_to='task_files/', verbose_name='Файл')
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='Загружен')
-
-    class Meta:
-        verbose_name = 'Файл задачи'
-        verbose_name_plural = 'Файлы задач'
 
     def __str__(self):
         return self.file.name

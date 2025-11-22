@@ -32,18 +32,18 @@
         </div>
         <div class="info-item">
         {% if task.files.exists %}
-        <div class="info-item">
-            <strong>Файлы:</strong>
-            <ul>
-            {% for file in task.files.all %}
-                <li>
-                <a href="{{ file.file.url }}" target="_blank">
-                    Скачать {{ file.file.name|basename }}
-                </a>
-                </li>
-            {% endfor %}
-            </ul>
-        </div>
+            <div class="info-item">
+                <strong>Файлы:</strong>
+                <ul>
+                {% for file in task.files.all %}
+                    <li>
+                    <a href="{{ file.file.url }}" target="_blank">
+                        Скачать {{ file.file.name|basename }}
+                    </a>
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
         {% endif %}
         </div>
     </div>

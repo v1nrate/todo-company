@@ -1,6 +1,6 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView,TemplateView, UpdateView, DeleteView
-from todo.forms import CustomUserCreationForm, TaskFileFormSet, TaskForm
+from todo.forms import CustomUserCreationForm, TaskForm
 from .models import TaskFile, UserModel, TaskModel, TaskHistoryModel, TelegramUserModel
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
@@ -48,21 +48,18 @@ class TaskDetailView(DetailView):
     template_name = 'todo/tasks/detail.html'
     context_object_name = 'task'
     
-class TaskCreateView(CreateView):
+class TaskCreateView(LoginRequiredMixin, CreateView):
     model = TaskModel
     template_name = 'todo/tasks/create.html'
     success_url = reverse_lazy('todo:task_list')
     form_class = TaskForm
 
     def form_valid(self, form):
-        # Сохраняем задачу
-        self.object = form.save()
-        
-        # Обрабатываем несколько файлов
+        form.instance.created_by = self.request.user  # ← auto-assign
+        task = form.save()
         files = self.request.FILES.getlist('files')
         for f in files:
-            TaskFile.objects.create(task=self.object, file=f)
-        
+            TaskFile.objects.create(task=task, file=f)
         return super().form_valid(form)
   
 class TaskHistoryListView(ListView):
@@ -77,7 +74,7 @@ class TaskHistoryDetailView(DetailView):
     template_name = 'todo/history/detail.html'
     context_object_name = 'history'
 
-class TaskUpdateView(UpdateView):
+class TaskUpdateView(LoginRequiredMixin, UpdateView):
     model = TaskModel
     form_class = TaskForm
     template_name = "todo/tasks/update.html"
@@ -85,21 +82,22 @@ class TaskUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
-        if self.request.POST:
-            data['file_formset'] = TaskFileFormSet(self.request.POST, self.request.FILES, instance=self.object)
-        else:
-            data['file_formset'] = TaskFileFormSet(instance=self.object)
+        # Передаём существующие файлы
+        data['existing_files'] = self.object.files.all()
         return data
 
     def form_valid(self, form):
-        context = self.get_context_data()
-        file_formset = context['file_formset']
-        if file_formset.is_valid():
-            self.object = form.save()
-            file_formset.save()
-            return super().form_valid(form)
-        else:
-            return self.render_to_response(self.get_context_data(form=form))
+        task = form.save()
+        # Удаляем файлы, отмеченные для удаления
+        for file in task.files.all():
+            field_name = f"delete_file_{file.id}"
+            if self.request.POST.get(field_name):
+                file.delete()
+        # Добавляем новые файлы
+        files = self.request.FILES.getlist('files')
+        for f in files:
+            TaskFile.objects.create(task=task, file=f)
+        return super().form_valid(form)
 
 class TaskDeleteView(DeleteView):
     model = TaskModel

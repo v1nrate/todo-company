@@ -56,12 +56,4 @@ class TaskForm(forms.ModelForm):
 
     class Meta:
         model = TaskModel
-        fields = ['title', 'description', 'assignee', 'created_by', 'deadline', 'priority', 'status']
-
-class TaskFileForm(forms.ModelForm):
-    class Meta:
-        model = TaskFile
-        fields = ['file']
-        widgets = {
-            'file': forms.ClearableFileInput(attrs={'multiple': True})
-        }
+        fields = ['title', 'description', 'assignee', 'deadline', 'priority', 'status']

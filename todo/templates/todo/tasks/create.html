@@ -1,20 +1,63 @@
 {% extends "base.html" %}
 
+{% load custom_filters %}
+
 {% block title %}Новая задача{% endblock %}
 
 {% block content %}
-<h2>Создать задачу</h2>
+<h3>Создать задачу</h3>
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
 
-    <!-- Поле для нескольких файлов -->
-    <div class="form-group">
-        <label for="id_files">Файлы:</label>
-        <input type="file" name="files" id="id_files" multiple>
+    <!-- Существующие файлы -->
+    {% if existing_files %}
+        <h3>Прикреплённые файлы</h3>
+        {% for file in existing_files %}
+            <div>
+                <a href="{{ file.file.url }}" target="_blank">
+                    {{ file.file.name|basename }}
+                </a>
+                <!-- Чекбокс для удаления -->
+                <label>
+                    <input type="checkbox" name="delete_file_{{ file.id }}" value="1">
+                    Удалить
+                </label>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Новые файлы -->
+    <div class="custom-file-upload">
+        <button type="button" id="upload-button" class="btn btn-primary">
+            📎 Прикрепить файлы
+        </button>
+        <input type="file" id="files" name="files" multiple style="display: none;">
     </div>
 
-    <button type="submit">Создать</button>
+    <ul id="file-list"></ul>
+
+    <button type="submit">Сохранить</button>
     <a href="{% url 'todo:task_list' %}">Отмена</a>
 </form>
+
+<script>
+document.getElementById('upload-button').addEventListener('click', function() {
+    document.getElementById('files').click();
+});
+
+document.getElementById('files').addEventListener('change', function(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+        let fileList = '';
+        for (let i = 0; i < files.length; i++) {
+            fileList += '<li>' + files[i].name + '</li>';
+        }
+        document.getElementById('file-list').innerHTML = '<h4>Новые файлы:</h4><ul>' + fileList + '</ul>';
+        // Меняем текст кнопки, чтобы было понятно, что файлы выбраны
+        document.getElementById('upload-button').textContent = '📎 Добавить ещё файлы';
+    }
+});
+</script>
+
 {% endblock %}
