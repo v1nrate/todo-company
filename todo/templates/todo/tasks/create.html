@@ -18,11 +18,6 @@
                 <a href="{{ file.file.url }}" target="_blank">
                     {{ file.file.name|basename }}
                 </a>
-                <!-- Чекбокс для удаления -->
-                <label>
-                    <input type="checkbox" name="delete_file_{{ file.id }}" value="1">
-                    Удалить
-                </label>
             </div>
         {% endfor %}
     {% endif %}

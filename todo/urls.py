@@ -16,6 +16,7 @@ urlpatterns = [
     path('tasks/create/', views.TaskCreateView.as_view(), name='task_create'),
     path('tasks/<int:pk>/edit/', views.TaskUpdateView.as_view(), name='task_update'),
     path('tasks/<int:pk>/delete/', views.TaskDeleteView.as_view(), name='task_delete'),
+    path('api/tasks/', views.get_tasks_json, name='api_tasks'),
 
     # History
     path('history/', views.TaskHistoryListView.as_view(), name='history_list'),
@@ -27,7 +28,10 @@ urlpatterns = [
     path('telegram-users/create/', views.TelegramUserCreateView.as_view(), name='telegram_user_create'),
 
     # Login, Logout 
-    path('login/', auth_views.LoginView.as_view(template_name='todo/auth/login.html', authentication_form=CustomAuthenticationForm), name='login'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='todo/auth/login.html', 
+        # authentication_form=CustomAuthenticationForm
+        ), name='login'),
     path('login/', auth_views.LogoutView.as_view(), name='logout'),
 
     # Registration

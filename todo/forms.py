@@ -20,6 +20,10 @@ class CustomUserCreationForm(UserCreationForm):
         return user
 
 class CustomAuthenticationForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].label = 'Username или Email'
+        
     def clean(self):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')

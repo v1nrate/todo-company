@@ -102,6 +102,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTH_USER_MODEL = 'todo.UserModel'
+AUTHENTICATION_BACKENDS = [
+    'todo.auth_backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',  # на всякий случай
+]
 
 LOGIN_URL = 'todo:login'
 LOGIN_REDIRECT_URL = 'todo:task_list'
@@ -109,6 +113,8 @@ LOGOUT_REDIRECT_URL = 'todo:task_list'
 
 with open("settings.json", "r", encoding="utf-8") as f:
     settings=json.load(f)
+
+TELEGRAM_BOT_TOKEN = settings['telegram_bot_token']
 
 EMAIL_BACKEND = settings['smtp_BACKEND']
 EMAIL_HOST = settings['smtp_HOST']

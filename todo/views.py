@@ -9,9 +9,10 @@ from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.decorators import login_required
 from django.core.mail import EmailMessage
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import JsonResponse
 
 
 # Create your views here.
@@ -166,3 +167,20 @@ def activate(request, uidb64, token):
         messages.error(request, 'Ссылка активации недействительна или уже использована.')
         return redirect('todo:login')
 
+@login_required
+def get_tasks_json(request):
+    if request.user.role == 'employee':
+        tasks = TaskModel.objects.filter(assignee=request.user)
+    else:  # manager
+        tasks = TaskModel.objects.all()
+    tasks_data = [{
+        'id': task.id,
+        'title': task.title,
+        'status': task.get_status_display(),
+        'status_display': task.get_status_display(),  # ← для JS
+        'priority': task.priority,
+        'priority_display': task.get_priority_display(),
+        'created_by__first_name': task.created_by.first_name if task.created_by else "—",
+        'deadline': task.deadline.strftime('%d.%m.%Y %H:%M'),
+    } for task in tasks.order_by('-created_at')]
+    return JsonResponse({'tasks': tasks_data})
