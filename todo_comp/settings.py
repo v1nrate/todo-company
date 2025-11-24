@@ -65,6 +65,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'todo.context_processors.telegram_bot_username',
             ],
         },
     },
@@ -115,6 +116,7 @@ with open("settings.json", "r", encoding="utf-8") as f:
     settings=json.load(f)
 
 TELEGRAM_BOT_TOKEN = settings['telegram_bot_token']
+TELEGRAM_BOT_USERNAME = "company_task_bot"  # ← замени на своё
 
 EMAIL_BACKEND = settings['smtp_BACKEND']
 EMAIL_HOST = settings['smtp_HOST']

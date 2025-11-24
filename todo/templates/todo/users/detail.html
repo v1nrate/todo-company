@@ -4,7 +4,19 @@
 {% block title %}{{ profile.username }}{% endblock %}
 
 {% block content %}
+
+{% if not profile.telegram_profile %}
+  {% if telegram_link_code %}
+    <a href="https://t.me/{{ TELEGRAM_BOT_USERNAME }}?start={{ telegram_link_code }}"
+       class="btn btn-primary"
+       target="_blank">
+      Привязать Telegram
+    </a>
+  {% endif %}
+{% endif %}
+
 <div class="profile">
+    {% csrf_token %}
     <div class="profile-header">
         <h2>{{ profile.username }}</h2>
         <span class="role">{{ profile.get_role_display }}</span>
@@ -17,15 +29,15 @@
         </div>
         <div class="stat-card">
             <h4>Завершено</h4>
-            <p>{{ profile.tasks.filter(status='completed').count }}</p>
+            <p>{{ profile.completed_tasks_count }}</p>
         </div>
         <div class="stat-card">
             <h4>В работе</h4>
-            <p>{{ profile.tasks.filter(status='in_progress').count }}</p>
+            <p>{{ profile.in_progress_tasks_count }}</p>
         </div>
         <div class="stat-card">
             <h4>Просрочено</h4>
-            <p>{{ profile.tasks.filter(status='overdue').count }}</p>
+            <p>{{ profile.overdue_tasks_count }}</p>
         </div>
     </div>
 

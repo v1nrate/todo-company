@@ -10,7 +10,21 @@ class UserModel(AbstractUser):
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='employee', verbose_name='Роль')
     email = models.EmailField(unique=True, verbose_name='Email')
+    telegram_link_code = models.CharField(max_length=32, blank=True, null=True, unique=True)
+    telegram_link_expires = models.DateTimeField(blank=True, null=True)
     
+    @property
+    def completed_tasks_count(self):
+        return self.tasks.filter(status='completed').count()
+
+    @property
+    def in_progress_tasks_count(self):
+        return self.tasks.filter(status='in_progress').count()
+
+    @property
+    def overdue_tasks_count(self):
+        return self.tasks.filter(status='overdue').count()
+
     def __str__(self):
         return f"{self.first_name} ({self.get_role_display()})"
     
@@ -69,7 +83,7 @@ class TaskHistoryModel(models.Model):
         return f"{self.task.title} - {self.field_changed} ({self.changed_at})"
     
 class TelegramUserModel(models.Model):
-    user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name="telegram_profile")
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name="telegram_profile")
     telegram_id = models.CharField(max_length=50, unique=True, verbose_name="Telegram ID")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     last_notification = models.DateTimeField(null=True, blank=True, verbose_name="Последнее уведомление")

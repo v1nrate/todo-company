@@ -1,3 +1,7 @@
+import secrets
+from django.utils import timezone
+from datetime import timedelta
+from django.utils.crypto import get_random_string
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView,TemplateView, UpdateView, DeleteView
 from todo.forms import CustomUserCreationForm, TaskForm
@@ -27,6 +31,17 @@ class UserDetailView(DetailView):
     model = UserModel
     template_name = 'todo/users/detail.html'
     context_object_name = 'profile'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Генерируем код, если его нет или он просрочен
+        if not self.request.user.telegram_link_code or \
+           (self.request.user.telegram_link_expires and timezone.now() > self.request.user.telegram_link_expires):
+            self.request.user.telegram_link_code = secrets.token_urlsafe(16)
+            self.request.user.telegram_link_expires = timezone.now() + timedelta(minutes=10)
+            self.request.user.save()
+        context['telegram_link_code'] = self.request.user.telegram_link_code
+        return context
 
 
 class TaskListView(LoginRequiredMixin, ListView):
@@ -184,3 +199,14 @@ def get_tasks_json(request):
         'deadline': task.deadline.strftime('%d.%m.%Y %H:%M'),
     } for task in tasks.order_by('-created_at')]
     return JsonResponse({'tasks': tasks_data})
+
+@login_required
+def generate_telegram_link(request):
+    if request.method == "POST":
+        code = get_random_string(32)
+        expires = timezone.now() + timedelta(minutes=10)
+        request.user.telegram_link_code = code
+        request.user.telegram_link_expires = expires
+        request.user.save()
+        return JsonResponse({'code': code})
+    return JsonResponse({'error': 'Only POST'}, status=405)

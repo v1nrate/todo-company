@@ -26,6 +26,7 @@ urlpatterns = [
     path('telegram-users/', views.TelegramUserListView.as_view(), name='telegram_user_list'),
     path('telegram-users/<int:pk>/', views.TelegramUserDetailView.as_view(), name='telegram_user_detail'),
     path('telegram-users/create/', views.TelegramUserCreateView.as_view(), name='telegram_user_create'),
+    path('api/generate-telegram-link/', views.generate_telegram_link, name='generate_telegram_link'),
 
     # Login, Logout 
     path('login/', auth_views.LoginView.as_view(
