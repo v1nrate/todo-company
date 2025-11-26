@@ -1,26 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
 {% block title %}Авторизация{% endblock %}
 
 {% block content %}
 <div class="auth-form">
     <h2>Войти в систему</h2>
-    {% if messages %}
-    <div class="messages">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    </div>
+
+    <!-- Ошибки формы (общие: неверный пароль и т.д.) -->
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
     {% endif %}
+
+    <!-- Сообщения от messages (например, после регистрации) -->
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <form method="post">
-    {% csrf_token %}
-    <div>
-        <label for="{{ form.username.id_for_label }}">Username или Email:</label>
-        {{ form.username }}
-    </div>
-    <div>
-        {{ form.password.label_tag }}
-        {{ form.password }}
-    </div>
-    <button type="submit">Войти</button>
+        {% csrf_token %}
+        <div>
+            <label for="{{ form.username.id_for_label }}">Username или Email:</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="alert alert-danger">{{ form.username.errors }}</div>
+            {% endif %}
+        </div>
+        <div>
+            {{ form.password.label_tag }}
+            {{ form.password }}
+            {% if form.password.errors %}
+                <div class="alert alert-danger">{{ form.password.errors }}</div>
+            {% endif %}
+        </div>
+        <button type="submit">Войти</button>
     </form>
     <p><a href="{% url 'todo:register' %}">Регистрация</a></p>
     <p><a href="{% url 'todo:password_reset' %}">Забыли пароль?</a></p>

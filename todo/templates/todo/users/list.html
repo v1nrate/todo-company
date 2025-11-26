@@ -4,33 +4,47 @@
 {% block title %}Пользователи{% endblock %}
 
 {% block content %}
-<h2>Пользователи</h2>
-<ul class="object-list">
-{% for user in users %}
-  <li>
-    <a href="{% url 'todo:user_detail' user.pk %}">
-      {{ user.first_name }} ({{ user.get_role_display }})
-    </a>
-    {% if user.telegram_id %} — Telegram: {{ user.telegram_id }}{% endif %}
-  </li>
-{% empty %}
-  <li>Нет пользователей</li>
-{% endfor %}
-</ul>
+<div class="dashboard">
+    <aside class="sidebar">
+        <h3>Меню</h3>
+        <ul>
+            <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
+            <li><a href="{% url 'todo:user_list' %}" class="active">Пользователи</a></li>
+            <li><a href="{% url 'todo:history_list' %}">История</a></li>
+        </ul>
+    </aside>
 
-{% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1">&laquo; первая</a>
-      <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
-    {% endif %}
+    <div class="main-content">
+        <h2>Пользователи</h2>
 
-    <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+        <ul class="object-list">
+            {% for user in users %}
+                <li>
+                    <a href="{% url 'todo:user_detail' user.pk %}">
+                        {{ user.first_name }} ({{ user.get_role_display }})
+                    </a>
+                    {% if user.telegram_profile.telegram_id %}
+                        — Telegram: {{ user.telegram_profile.telegram_id }}
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li>Нет пользователей</li>
+            {% endfor %}
+        </ul>
 
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
-    {% endif %}
-  </div>
-{% endif %}
+        {% if is_paginated %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; первая</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+                {% endif %}
+                <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

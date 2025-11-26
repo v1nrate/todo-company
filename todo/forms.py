@@ -1,8 +1,11 @@
 from django import forms
 from .models import TaskFile, UserModel, TaskModel
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.forms import inlineformset_factory
+from django.core.exceptions import ValidationError
+
+User = get_user_model()
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -20,43 +23,52 @@ class CustomUserCreationForm(UserCreationForm):
         return user
 
 class CustomAuthenticationForm(AuthenticationForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['username'].label = 'Username или Email'
-        
-    def clean(self):
-        username = self.cleaned_data.get('username')
-        password = self.cleaned_data.get('password')
+    # Кастомные сообщения об ошибках
+    error_messages = {
+        'invalid_login': (
+            "Неверный логин или пароль. Поля чувствительны к регистру."
+        ),
+        'inactive': ("Ваш аккаунт не активирован. Проверьте почту."),
+    }
 
-        if username and password:
-            self.user_cache = authenticate(
-                self.request,
-                username=username,
-                password=password
+    def clean_username(self):
+        """Преобразует email в username, если введён email."""
+        username = self.cleaned_data.get('username')
+        if '@' in username:
+            try:
+                user = User.objects.get(email__iexact=username)
+                return user.username
+            except User.DoesNotExist:
+                # Оставляем как есть — AuthenticationForm сам выдаст ошибку
+                pass
+        return username
+
+    def confirm_login_allowed(self, user):
+        """Дополнительная проверка при успешной аутентификации."""
+        if not user.is_active:
+            raise ValidationError(
+                self.error_messages['inactive'],
+                code='inactive',
             )
-            if self.user_cache is None:
-                raise forms.ValidationError(
-                    "Неверное имя пользователя или пароль.",
-                    code='invalid_login'
-                )
-            # Проверка: подтверждён ли email?
-            if not self.user_cache.is_active:
-                raise forms.ValidationError(
-                    "Ваш email не подтверждён. Проверьте почту и перейдите по ссылке активации.",
-                    code='inactive'
-                )
-        return self.cleaned_data
-        
+
 class TaskForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Настраиваем виджет для поля deadline
+        
+        # Настройка виджета для deadline
         self.fields['deadline'].widget = forms.DateTimeInput(
-            attrs={
-                'type': 'datetime-local',  # ← HTML5-виджет с календарём и временем
-                'required': True,
-            }
+            attrs={'type': 'datetime-local', 'required': True}
         )
+        
+        # Блокируем deadline при редактировании
+        if self.instance and self.instance.pk:
+            self.fields['deadline'].disabled = True
+        
+        # Фильтруем choices для status — оставляем только 'new' и 'in_progress'
+        self.fields['status'].choices = [
+            (choice, label) for choice, label in TaskModel.STATUS_CHOICES 
+            if choice in ['new', 'in_progress']
+        ]
 
     class Meta:
         model = TaskModel

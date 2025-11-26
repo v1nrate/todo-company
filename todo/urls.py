@@ -2,6 +2,7 @@ from django.urls import path
 from todo.forms import CustomAuthenticationForm
 from . import views
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.views import LoginView
 
 app_name = 'todo'
 
@@ -15,7 +16,9 @@ urlpatterns = [
     path('tasks/<int:pk>/', views.TaskDetailView.as_view(), name='task_detail'),
     path('tasks/create/', views.TaskCreateView.as_view(), name='task_create'),
     path('tasks/<int:pk>/edit/', views.TaskUpdateView.as_view(), name='task_update'),
+    path('tasks/<int:pk>/complete/', views.complete_task, name='task_complete'),
     path('tasks/<int:pk>/delete/', views.TaskDeleteView.as_view(), name='task_delete'),
+    path('tasks/<int:file_id>/delete-file/', views.delete_file, name='delete_file'),
     path('api/tasks/', views.get_tasks_json, name='api_tasks'),
 
     # History
@@ -23,17 +26,16 @@ urlpatterns = [
     path('history/<int:pk>/', views.TaskHistoryDetailView.as_view(), name='history_detail'),
 
     # Telegram Users
-    path('telegram-users/', views.TelegramUserListView.as_view(), name='telegram_user_list'),
-    path('telegram-users/<int:pk>/', views.TelegramUserDetailView.as_view(), name='telegram_user_detail'),
-    path('telegram-users/create/', views.TelegramUserCreateView.as_view(), name='telegram_user_create'),
     path('api/generate-telegram-link/', views.generate_telegram_link, name='generate_telegram_link'),
+    path('unlink-telegram/', views.unlink_telegram, name='unlink_telegram'),
 
     # Login, Logout 
-    path('login/', auth_views.LoginView.as_view(
-        template_name='todo/auth/login.html', 
-        # authentication_form=CustomAuthenticationForm
-        ), name='login'),
-    path('login/', auth_views.LogoutView.as_view(), name='logout'),
+    path('login/', LoginView.as_view(
+        template_name='todo/auth/login.html',
+        authentication_form=CustomAuthenticationForm,
+        redirect_authenticated_user=True
+    ), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 
     # Registration
     path('register/', views.register, name='register'),

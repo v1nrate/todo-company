@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your models here.
 class UserModel(AbstractUser):
@@ -61,7 +64,9 @@ class TaskModel(models.Model):
         return f"[{self.get_status_display()}] {self.title} → {self.assignee}"
     
     def save(self, *args, **kwargs):
+        logger.info(f"Сохраняем задачу {self.id}: status={self.status}, deadline={self.deadline}, now={timezone.now()}")
         if self.deadline < timezone.now() and self.status != 'completed':
+            logger.info(f"Задача {self.id} просрочена → меняем статус на 'overdue'")
             self.status = 'overdue'
         super().save(*args, **kwargs)
 
@@ -83,7 +88,7 @@ class TaskHistoryModel(models.Model):
         return f"{self.task.title} - {self.field_changed} ({self.changed_at})"
     
 class TelegramUserModel(models.Model):
-    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name="telegram_profile")
+    user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name="telegram_profile", null=True, blank=True)
     telegram_id = models.CharField(max_length=50, unique=True, verbose_name="Telegram ID")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     last_notification = models.DateTimeField(null=True, blank=True, verbose_name="Последнее уведомление")

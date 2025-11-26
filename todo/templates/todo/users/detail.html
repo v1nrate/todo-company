@@ -5,7 +5,11 @@
 
 {% block content %}
 
-{% if not profile.telegram_profile %}
+{% if profile.telegram_profile %}
+    {% if request.user == profile %}
+        <a href="{% url 'todo:unlink_telegram' %}" class="btn btn-danger">Отвязать Telegram</a>
+    {% endif %}
+{% else %}
   {% if telegram_link_code %}
     <a href="https://t.me/{{ TELEGRAM_BOT_USERNAME }}?start={{ telegram_link_code }}"
        class="btn btn-primary"
@@ -66,7 +70,7 @@
     </ul>
 
     <div class="profile-actions">
-        <a href="{% url 'todo:user_list' %}" class="btn btn-secondary">Назад к списку</a>
+        <a href="{% url 'todo:task_list' %}" class="btn btn-secondary">Назад к списку</a>
     </div>
 </div>
 {% endblock %}

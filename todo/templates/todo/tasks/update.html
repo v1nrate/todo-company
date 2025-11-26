@@ -10,52 +10,140 @@
     {{ form.as_p }}
 
     <!-- Существующие файлы -->
+    <div class="form-group">
+    <label>Прикреплённые файлы:</label>
     {% if existing_files %}
-        <h3>Прикреплённые файлы</h3>
+        <ul id="existing-files-list">
         {% for file in existing_files %}
-            <div>
-                <a href="{{ file.file.url }}" target="_blank">
-                    {{ file.file.name|basename }}
-                </a>
-                <!-- Чекбокс для удаления -->
-                <label>
-                    <input type="checkbox" name="delete_file_{{ file.id }}" value="1">
+            <li data-file-id="{{ file.id }}">
+                <a href="{{ file.file.url }}" target="_blank">{{ file.file.name }}</a>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-existing-btn">
                     Удалить
-                </label>
-            </div>
+                </button>
+            </li>
         {% endfor %}
+        </ul>
+    {% else %}
+        <p>Нет файлов.</p>
     {% endif %}
+</div>
 
-    <!-- Новые файлы -->
-    <div class="custom-file-upload">
-        <button type="button" id="upload-button" class="btn btn-primary">
-            📎 Прикрепить файлы
-        </button>
-        <input type="file" id="files" name="files" multiple style="display: none;">
-    </div>
+<div class="form-group">
+    <label>Добавить новые файлы:</label>
+    <input type="file" id="new-file-input" multiple>
+    <div id="new-files-list"></div>
+</div>
 
-    <ul id="file-list"></ul>
-
-    <button type="submit">Сохранить</button>
-    <a href="{% url 'todo:task_detail' object.pk %}">Отмена</a>
+<button type="submit" class="btn btn-primary">Сохранить задачу</button>
+<a href="{{ request.META.HTTP_REFERER|default:'/tasks/' }}" class="btn btn-outline-secondary">Отмена</a>
 </form>
 
 <script>
-document.getElementById('upload-button').addEventListener('click', function() {
-    document.getElementById('files').click();
+// Для существующих файлов — AJAX-удаление
+document.querySelectorAll('.delete-existing-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const fileId = this.closest('li').dataset.fileId;
+        if (confirm('Вы уверены, что хотите удалить этот файл?')) {
+            fetch(`/tasks/${fileId}/delete-file/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.closest('li').remove();
+                    alert('Файл успешно удалён.');
+                } else {
+                    alert('Ошибка при удалении файла.');
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка:', err);
+                alert('Произошла ошибка. Попробуйте позже.');
+            });
+        }
+    });
 });
 
-document.getElementById('files').addEventListener('change', function(e) {
-    const files = e.target.files;
-    if (files.length > 0) {
-        let fileList = '';
-        for (let i = 0; i < files.length; i++) {
-            fileList += '<li>' + files[i].name + '</li>';
+// Для новых файлов — управление через JS
+let newFiles = [];
+
+document.getElementById('new-file-input').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    newFiles = newFiles.concat(files);
+    renderNewFileList();
+    e.target.value = ''; // Очищаем input
+});
+
+function renderNewFileList() {
+    const list = document.getElementById('new-files-list');
+    list.innerHTML = '';
+    newFiles.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.margin = '0.3rem 0';
+
+        const name = document.createElement('span');
+        name.textContent = file.name;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = 'Удалить';
+        deleteBtn.style.marginLeft = '1rem';
+        deleteBtn.style.padding = '0.2rem 0.5rem';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.onclick = () => {
+            newFiles.splice(index, 1);
+            renderNewFileList();
+        };
+
+        item.appendChild(name);
+        item.appendChild(deleteBtn);
+        list.appendChild(item);
+    });
+}
+
+// Перед отправкой формы — добавляем новые файлы в FormData
+document.getElementById('task-form').addEventListener('submit', function(e) {
+    const formData = new FormData(this);
+
+    // Удаляем старые файлы из формы (если были)
+    for (let pair of formData.entries()) {
+        if (pair[0] === 'files') {
+            formData.delete('files');
         }
-        document.getElementById('file-list').innerHTML = '<h4>Новые файлы:</h4><ul>' + fileList + '</ul>';
-        // Меняем текст кнопки, чтобы было понятно, что файлы выбраны
-        document.getElementById('upload-button').textContent = '📎 Добавить ещё файлы';
     }
+
+    // Добавляем новые файлы
+    newFiles.forEach(file => {
+        formData.append('files', file);
+    });
+
+    e.preventDefault();
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            return response.text().then(html => {
+                document.open();
+                document.write(html);
+                document.close();
+            });
+        }
+    })
+    .catch(err => console.error('Ошибка:', err));
 });
 </script>
 {% endblock %}

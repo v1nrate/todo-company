@@ -11,13 +11,23 @@
             <li><a href="{% url 'todo:task_list' %}" class="active">Задачи</a></li>
             <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
             <li><a href="{% url 'todo:history_list' %}">История</a></li>
-            <li><a href="{% url 'todo:telegram_user_list' %}">Telegram</a></li>
         </ul>
     </aside>
 
     <div class="main-content">
         <div class="header-actions">
             <a href="{% url 'todo:task_create' %}" class="btn btn-primary">Добавить задачу</a>
+            <div class="sort-controls" style="margin-bottom: 1rem;">
+                <strong>Сортировать по:</strong>
+                <a href="?sort=-created_at" class="btn {% if request.GET.sort == '-created_at' %}btn-primary{% else %}btn-outline{% endif %}">Создана ↓</a>
+                <a href="?sort=created_at" class="btn {% if request.GET.sort == 'created_at' %}btn-primary{% else %}btn-outline{% endif %}">Создана ↑</a>
+                <a href="?sort=-deadline" class="btn {% if request.GET.sort == '-deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↓</a>
+                <a href="?sort=deadline" class="btn {% if request.GET.sort == 'deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↑</a>
+                <a href="?sort=assignee__first_name" class="btn {% if request.GET.sort == 'assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↑</a>
+                <a href="?sort=-assignee__first_name" class="btn {% if request.GET.sort == '-assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↓</a>
+                <a href="?sort=priority" class="btn {% if request.GET.sort == 'priority' %}btn-primary{% else %}btn-outline{% endif %}">Приоритет</a>
+                <a href="?sort=status" class="btn {% if request.GET.sort == 'status' %}btn-primary{% else %}btn-outline{% endif %}">Статус</a>
+            </div>
             <div class="calendar-widget">
                 <!-- Здесь будет календарь (FullCalendar.js) -->
                 <h4>Календарь</h4>
@@ -48,27 +58,37 @@
 
 <script>
 function loadTasks() {
-    fetch("{% url 'todo:api_tasks' %}")
+    const url = new URL(window.location);
+    const sortParam = url.searchParams.get('sort');
+    const apiEndpoint = "{% url 'todo:api_tasks' %}" + (sortParam ? `?sort=${encodeURIComponent(sortParam)}` : '');
+
+    fetch(apiEndpoint)
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('tasks-container');
             let html = '<ul>';
             data.tasks.forEach(task => {
+                const statusClass = task.status === 'completed' ? 'completed' : task.status === 'overdue' ? 'overdue' : '';
                 html += `
-                    <li class="task-card ${task.status === 'completed' ? 'completed' : task.status === 'overdue' ? 'overdue' : ''}">
+                    <li class="task-card ${statusClass}">
                         <div class="task-header">
                             <span class="task-title">${task.title}</span>
                             <span class="task-priority priority-${task.priority}">${task.priority_display}</span>
                         </div>
                         <div class="task-meta">
-                            <span>Создал: ${task.created_by__first_name || "—"}</span>
+                            <span>Создал: ${task.created_by__first_name || "—"}</span>`;
+                // Показываем исполнителя только если пользователь — менеджер
+                if (data.user_is_manager) {
+                    html += `<span>Исполнитель: ${task.assignee__first_name || "—"}</span>`;
+                }
+                html += `
                             <span>Дедлайн: ${task.deadline}</span>
                             <span>Статус: ${task.status_display}</span>
                         </div>
                         <div class="task-actions">
                             <a href="/tasks/${task.id}/">Подробнее</a>
                             <a href="/tasks/${task.id}/edit/">Редактировать</a>
-                            <a href="/tasks/${task.id}/delete/" class="btn btn-sm btn-danger">Удалить</a>
+                            <a href="/tasks/${task.id}/complete/" class="btn btn-sm btn-success">Завершить</a>
                         </div>
                     </li>`;
             });

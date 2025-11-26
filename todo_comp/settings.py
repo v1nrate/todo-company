@@ -57,7 +57,7 @@ ROOT_URLCONF = 'todo_comp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # можно оставить пустым
+        'DIRS': [BASE_DIR / 'templates'],  # можно оставить пустым
         'APP_DIRS': True,  # ← обязательно True
         'OPTIONS': {
             'context_processors': [

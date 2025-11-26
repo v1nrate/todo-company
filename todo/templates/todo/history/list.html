@@ -1,34 +1,67 @@
-<!-- todo/templates/todo/history/list.html -->
 {% extends "base.html" %}
 
-{% block title %}История изменений{% endblock %}
+{% block title %}История задач{% endblock %}
 
 {% block content %}
-<h2>История изменений</h2>
-<ul class="object-list">
-{% for entry in histories %}
-  <li>
-    <a href="{% url 'todo:history_detail' entry.pk %}">
-      {{ entry.task.title }} — {{ entry.field_changed }}
-    </a>
-    ({{ entry.changed_at|date:"d.m.Y H:i" }})
-  </li>
-{% empty %}
-  <li>Нет записей</li>
-{% endfor %}
-</ul>
+<div class="dashboard">
+    <aside class="sidebar">
+        <h3>Меню</h3>
+        <ul>
+            <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
+            <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
+            <li><a href="{% url 'todo:history_list' %}" class="active">История</a></li>
+        </ul>
+    </aside>
 
-{% if is_paginated %}
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page=1">&laquo; первая</a>
-      <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
-    {% endif %}
-    <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
-    {% endif %}
-  </div>
-{% endif %}
+    <div class="main-content">
+        <h2>История задач</h2>
+
+        <!-- Кнопки сортировки -->
+        <div class="sort-controls">
+            <strong>Сортировать по:</strong>
+            <a href="?sort=-created_at" class="btn {% if request.GET.sort == '-created_at' %}btn-primary{% else %}btn-outline{% endif %}">Дата создания ↓</a>
+            <a href="?sort=created_at" class="btn {% if request.GET.sort == 'created_at' %}btn-primary{% else %}btn-outline{% endif %}">Дата создания ↑</a>
+            <a href="?sort=-deadline" class="btn {% if request.GET.sort == '-deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↓</a>
+            <a href="?sort=deadline" class="btn {% if request.GET.sort == 'deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↑</a>
+            <a href="?sort=assignee__first_name" class="btn {% if request.GET.sort == 'assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↑</a>
+            <a href="?sort=-assignee__first_name" class="btn {% if request.GET.sort == '-assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↓</a>
+            <a href="?sort=priority" class="btn {% if request.GET.sort == 'priority' %}btn-primary{% else %}btn-outline{% endif %}">Приоритет</a>
+        </div>
+
+        <div class="tasks-list">
+            <ul>
+                {% for task in tasks %}
+                  <li class="task-card {% if task.status == 'completed' %}completed{% elif task.status == 'overdue' %}overdue{% endif %}">
+                      <div class="task-header">
+                          <span class="task-title">{{ task.title }}</span>
+                          <span class="task-priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                      </div>
+                      <div class="task-meta">
+                          <span>Создал: {{ task.created_by.first_name|default:"—" }}</span>
+                          {% if request.user.role == 'manager' %}
+                            <span>Исполнитель: {{ task.assignee.first_name|default:"—" }}</span>
+                          {% endif %}
+                          <span>Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}</span>
+                          <span>Статус: {{ task.get_status_display }}</span>
+                      </div>
+                      <div class="task-actions">
+                          <a href="{% url 'todo:task_detail' task.pk %}">Подробнее</a>
+                          {% if task.status != 'completed' %}
+                              <a href="{% url 'todo:task_complete' task.pk %}" class="btn btn-sm btn-success">Завершить</a>
+                          {% endif %}
+                      </div>
+                  </li>
+              {% empty %}
+                  <li>Нет задач.</li>
+              {% endfor %}
+            </ul>
+        </div>
+
+        {% if is_paginated %}
+          <div class="pagination">
+            <!-- пагинация -->
+          </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -13,7 +13,12 @@
         <div class="container">
             {% if request.user.is_authenticated %}
                 <a href="{% url 'todo:user_detail' request.user.id %}">Привет, {{ request.user.first_name }} ({{ request.user.get_role_display }})</a>
-                <a href="{% url 'todo:logout' %}">Выход</a>
+                <form method="post" action="{% url 'todo:logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link" style="padding: 0; border: none; background: none; color: inherit; text-decoration: underline;">
+                        Выход
+                    </button>
+                </form>
             {% else %}
                 <a href="{% url 'todo:login' %}">Вход</a>
             {% endif %}
