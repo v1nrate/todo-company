@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.urls import reverse
 from django.utils import timezone
 import logging
 
@@ -90,3 +91,15 @@ class TaskFile(models.Model):
 
     def __str__(self):
         return self.file.name
+    
+class Comment(models.Model):
+    task = models.ForeignKey(TaskModel, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    text = models.TextField(max_length=10000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Комментарий от {self.author.first_name} к задаче {self.task.title}'
+    
+def get_absolute_url(self):
+    return reverse('todo:task_detail', kwargs={'pk': self.pk})

@@ -48,22 +48,34 @@
         </div>
     </div>
 
-    <h3>История изменений</h3>
-    <ul class="history-list">
-    {% for entry in task.history.all %}
-        <li class="history-entry">
-            <span class="entry-time">{{ entry.changed_at|date:"d.m.Y H:i" }}</span>
-            <span class="entry-user">{{ entry.changed_by.username|default:"Система" }}</span>
-            <span class="entry-field">{{ entry.field_changed }}</span>
-            <span class="entry-change">«{{ entry.old_value|default:"—" }}» → «{{ entry.new_value|default:"—" }}»</span>
-            {% if entry.reason %}
-                <span class="entry-reason">({{ entry.reason }})</span>
-            {% endif %}
-        </li>
-    {% empty %}
-        <li>Изменений нет</li>
-    {% endfor %}
-    </ul>
+    <!-- Комментарии -->
+    <div class="comments-section" style="margin-top: 2rem;">
+        <h3>Комментарии ({{ task.comments.count }})</h3>
+
+        <!-- Форма добавления -->
+        <form method="post" autocomplete="off">
+            {% csrf_token %}
+            {{ comment_form.text|attr:"autocomplete:off" }}
+            <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Добавить комментарий</button>
+        </form>
+
+        <!-- Список комментариев -->
+        {% if task.comments.exists %}
+            <div class="comments-list">
+                {% for comment in task.comments.all|dictsortreversed:"created_at" %}
+                <div class="comment-card" style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #6c5ce7;">
+                    <div style="font-weight: 600; color: #6c5ce7;">{{ comment.author.first_name }}</div>
+                    <div style="font-size: 0.95rem; margin: 6px 0;">{{ comment.text|linebreaks }}</div>
+                    <div style="font-size: 0.85rem; color: #888;">
+                        {{ comment.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Комментариев пока нет.</p>
+        {% endif %}
+    </div>
 
     <div class="task-actions">
         <a href="{% url 'todo:task_list' %}" class="btn btn-secondary">Назад к списку</a>
@@ -71,4 +83,14 @@
         <a href="{% url 'todo:task_delete' task.pk %}" class="btn btn-danger">Удалить</a>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const textarea = document.querySelector('textarea[name="text"]');
+    if (textarea && urlParams.has('comment')) {
+        textarea.value = '';
+    }
+});
+</script>
 {% endblock %}

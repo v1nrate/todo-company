@@ -1,5 +1,6 @@
+from dataclasses import fields
 from django import forms
-from .models import TaskFile, UserModel, TaskModel
+from .models import Comment, TaskFile, UserModel, TaskModel
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import authenticate, get_user_model
 from django.forms import inlineformset_factory
@@ -73,3 +74,18 @@ class TaskForm(forms.ModelForm):
     class Meta:
         model = TaskModel
         fields = ['title', 'description', 'assignee', 'deadline', 'priority', 'status']
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Напишите комментарий...',
+                'class': 'form-control'
+            })
+        }
+        labels = {
+            'text': ''
+        }

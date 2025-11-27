@@ -3,9 +3,12 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from collections import defaultdict
 from django.utils.crypto import get_random_string
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView,TemplateView, UpdateView, DeleteView
-from todo.forms import CustomUserCreationForm, TaskForm
+from todo.forms import CommentForm, CustomUserCreationForm, TaskForm
 from .models import TaskFile, UserModel, TaskModel, TelegramUserModel
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
@@ -103,10 +106,30 @@ class TaskListView(LoginRequiredMixin, ListView):
         context['today'] = today
         return context
 
+@method_decorator(never_cache, name='dispatch')
 class TaskDetailView(DetailView):
     model = TaskModel
     template_name = 'todo/tasks/detail.html'
     context_object_name = 'task'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comment_form'] = CommentForm()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        task = self.get_object()
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.task = task
+            comment.author = request.user
+            comment.save()
+            return redirect('todo:task_detail', pk=task.pk)
+        else:
+            context = self.get_context_data()
+            context['comment_form'] = form
+            return self.render_to_response(context)
     
 class TaskCreateView(LoginRequiredMixin, CreateView):
     model = TaskModel
@@ -350,3 +373,15 @@ def unlink_telegram(request):
     except TelegramUserModel.DoesNotExist:
         messages.warning(request, "Telegram не был привязан.")
     return redirect('todo:user_detail', pk=request.user.pk)
+
+def post(self, request, *args, **kwargs):
+    task = self.get_object()
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.task = task
+        comment.author = request.user
+        comment.save()
+        # Перенаправляем с параметром
+        return redirect(f"{task.get_absolute_url()}?comment=added")
+    # ...

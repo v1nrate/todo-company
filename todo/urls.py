@@ -20,6 +20,7 @@ urlpatterns = [
     path('tasks/<int:pk>/delete/', views.TaskDeleteView.as_view(), name='task_delete'),
     path('tasks/<int:file_id>/delete-file/', views.delete_file, name='delete_file'),
     path('api/tasks/', views.get_tasks_json, name='api_tasks'),
+    
     # Calendar
     path('api/calendar-events/', views.get_calendar_events, name='calendar_events'),
 
