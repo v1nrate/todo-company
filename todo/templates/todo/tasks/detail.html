@@ -22,10 +22,10 @@
             <strong>Приоритет:</strong> {{ task.get_priority_display }}
         </div>
         <div class="info-item">
-            <strong>Дедлайн:</strong> {{ task.deadline }}
+            <strong>Дедлайн:</strong> {{ task.deadline|date:"d.m.Y H:i" }}
         </div>
         <div class="info-item">
-            <strong>Создана:</strong> {{ task.created_at }}
+            <strong>Создана:</strong> {{ task.created_at|date:"d.m.Y H:i" }}
         </div>
         <div class="info-item">
             <strong>Описание:</strong> {{ task.description|linebreaks|default:"—" }}

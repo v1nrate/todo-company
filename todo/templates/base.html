@@ -7,6 +7,7 @@
     <title>{% block title %}Корпоративный To-Do List{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css' rel='stylesheet' />
 </head>
 <body class="{% if request.user.is_authenticated %}authenticated{% endif %}">
     <header>
@@ -34,4 +35,5 @@
         <p>&copy; 2025 Корпоративный To-Do List</p>
     </footer>
 </body>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 </html>

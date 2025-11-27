@@ -15,9 +15,10 @@
     </aside>
 
     <div class="main-content">
+        <!-- Верхняя панель с кнопками -->
         <div class="header-actions">
             <a href="{% url 'todo:task_create' %}" class="btn btn-primary">Добавить задачу</a>
-            <div class="sort-controls" style="margin-bottom: 1rem;">
+            <div class="sort-controls" style="margin-top: 1rem;">
                 <strong>Сортировать по:</strong>
                 <a href="?sort=-created_at" class="btn {% if request.GET.sort == '-created_at' %}btn-primary{% else %}btn-outline{% endif %}">Создана ↓</a>
                 <a href="?sort=created_at" class="btn {% if request.GET.sort == 'created_at' %}btn-primary{% else %}btn-outline{% endif %}">Создана ↑</a>
@@ -28,31 +29,39 @@
                 <a href="?sort=priority" class="btn {% if request.GET.sort == 'priority' %}btn-primary{% else %}btn-outline{% endif %}">Приоритет</a>
                 <a href="?sort=status" class="btn {% if request.GET.sort == 'status' %}btn-primary{% else %}btn-outline{% endif %}">Статус</a>
             </div>
-            <div class="calendar-widget">
-                <!-- Здесь будет календарь (FullCalendar.js) -->
-                <h4>Календарь</h4>
-                <div id="calendar"></div>
+        </div>
+
+        <!-- Два столбца: задачи + календарь -->
+        <div class="content-wrapper">
+            <!-- Список задач (основной контент) -->
+            <div class="tasks-column">
+                <div class="tasks-list" id="tasks-container">
+                    {% include "todo/tasks/_task_list_items.html" %}
+                </div>
+
+                {% if is_paginated %}
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; первая</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+                    {% endif %}
+                    <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Календарь справа -->
+            <div class="calendar-column">
+                <div class="calendar-widget">
+                    <h4>Календарь</h4>
+                    <div id="calendar"></div>
+                </div>
             </div>
         </div>
-
-        <div class="tasks-list" id="tasks-container">
-            <!-- Список задач будет обновляться здесь -->
-            {% include "todo/tasks/_task_list_items.html" %}
-        </div>
-
-        {% if is_paginated %}
-          <div class="pagination">
-            {% if page_obj.has_previous %}
-              <a href="?page=1">&laquo; первая</a>
-              <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
-            {% endif %}
-            <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-            {% if page_obj.has_next %}
-              <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-              <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
-            {% endif %}
-          </div>
-        {% endif %}
     </div>
 </div>
 
@@ -86,8 +95,8 @@ function loadTasks() {
                             <span>Статус: ${task.status_display}</span>
                         </div>
                         <div class="task-actions">
-                            <a href="/tasks/${task.id}/">Подробнее</a>
-                            <a href="/tasks/${task.id}/edit/">Редактировать</a>
+                            <a href="/tasks/${task.id}/" class="btn btn-sm btn-info">Подробнее</a>
+                            <a href="/tasks/${task.id}/edit/" class="btn btn-sm btn-warning">Редактировать</a>
                             <a href="/tasks/${task.id}/complete/" class="btn btn-sm btn-success">Завершить</a>
                         </div>
                     </li>`;
@@ -100,6 +109,70 @@ function loadTasks() {
 
 // Загрузить задачи сразу
 loadTasks();
+
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+
+    function getDayKey(date) {
+        const d = new Date(date);
+        return d.getFullYear() + '-' +
+               String(d.getMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getDate()).padStart(2, '0');
+    }
+
+    const eventsLoader = function(fetchInfo, successCallback, failureCallback) {
+        fetch('{% url "todo:calendar_events" %}')
+            .then(response => response.json())
+            .then(events => {
+                const eventsByDay = {};
+                events.forEach(event => {
+                    const dayKey = getDayKey(event.start);
+                    if (!eventsByDay[dayKey]) {
+                        eventsByDay[dayKey] = [];
+                    }
+                    eventsByDay[dayKey].push(event);
+                });
+
+                const filteredEvents = [];
+                for (const day in eventsByDay) {
+                    const dayEvents = eventsByDay[day]
+                        .sort((a, b) => new Date(a.start) - new Date(b.start))
+                        .slice(0, 2);
+                    filteredEvents.push(...dayEvents);
+                }
+
+                successCallback(filteredEvents);
+            })
+            .catch(failureCallback);
+    };
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ru',
+        timeZone: 'Europe/Moscow',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth' // ← УБРАЛИ listWeek
+        },
+        events: eventsLoader,
+        eventContent: function(arg) {
+            const timeText = arg.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return {
+                html: `<div style="font-size: 0.8em; padding: 2px 4px; background-color: ${arg.event.backgroundColor}; color: white; border-radius: 3px;">
+                    ${timeText}
+                </div>`
+            };
+        },
+        height: 'auto',
+        aspectRatio: false,
+        scrollTime: '00:00:00',
+        dayMaxEvents: false,
+        moreLinkClick: null
+    });
+
+    calendar.render();
+});
 
 // Обновлять каждые 5 секунд
 setInterval(loadTasks, 5000);

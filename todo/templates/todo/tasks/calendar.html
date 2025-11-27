@@ -1,0 +1,69 @@
+<!-- templates/todo/tasks/calendar.html -->
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5>Календарь</h5>
+    </div>
+    <div class="card-body">
+        <div id="task-calendar" class="calendar-container">
+            <!-- Здесь будет рендериться календарь -->
+            {% for day, tasks in calendar_days.items %}
+                <div class="day-item{% if day == today %} today{% endif %}" data-date="{{ day|date:'Y-m-d' }}">
+                    <span class="day-number">{{ day|date:'d' }}</span>
+                    {% if tasks %}
+                        <span class="badge badge-danger">{{ tasks|length }} задач</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .calendar-container {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+        padding: 10px;
+    }
+    .day-item {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+        position: relative;
+        background-color: #fff;
+    }
+    .day-item.today {
+        background-color: #e6f7ff;
+        border: 2px solid #007bff;
+    }
+    .day-item:hover {
+        background-color: #f0f0f0;
+        cursor: pointer;
+    }
+    .badge {
+        font-size: 0.7em;
+        margin-top: 4px;
+    }
+</style>
+
+<script>
+const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    locale: 'ru',
+    events: "{% url 'todo:calendar_events' %}",  // ← новый эндпоинт
+    eventClick: function(info) {
+        window.location.href = info.event.url;
+    }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const dayItems = document.querySelectorAll('.day-item');
+    dayItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const date = this.getAttribute('data-date');
+            // Открываем модальное окно или переходим на страницу задач за день
+            alert(`Задачи на ${date}:`);
+            // Можно сделать AJAX-запрос и подгружать задачи без перезагрузки
+        });
+    });
+});
+</script>

@@ -20,10 +20,11 @@ urlpatterns = [
     path('tasks/<int:pk>/delete/', views.TaskDeleteView.as_view(), name='task_delete'),
     path('tasks/<int:file_id>/delete-file/', views.delete_file, name='delete_file'),
     path('api/tasks/', views.get_tasks_json, name='api_tasks'),
+    # Calendar
+    path('api/calendar-events/', views.get_calendar_events, name='calendar_events'),
 
     # History
     path('history/', views.TaskHistoryListView.as_view(), name='history_list'),
-    path('history/<int:pk>/', views.TaskHistoryDetailView.as_view(), name='history_detail'),
 
     # Telegram Users
     path('api/generate-telegram-link/', views.generate_telegram_link, name='generate_telegram_link'),

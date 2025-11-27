@@ -5,6 +5,7 @@ import os
 import sys
 from pathlib import Path
 import django
+from django.utils import timezone
 from telegram import KeyboardButton, ReplyKeyboardMarkup, Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
@@ -17,7 +18,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'todo_comp.settings')
 django.setup()
 
 # ИМПОРТИРУЕМ МОДЕЛИ ТОЛЬКО ПОСЛЕ django.setup() ✅
-from todo.models import TaskHistoryModel, UserModel, TelegramUserModel, TaskModel
+from todo.models import UserModel, TelegramUserModel, TaskModel
 from django.conf import settings
 
 # Настройка логирования
@@ -159,7 +160,7 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        msg = f"• *{task.title}*\nДедлайн: {task.deadline.strftime('%d.%m %Y %H:%M')}"
+        msg = f"• *{task.title}*\nДедлайн: {timezone.localtime(task.deadline).strftime('%d.%m %Y %H:%M')}"
         await update.message.reply_text(
             msg,
             reply_markup=reply_markup,
@@ -188,7 +189,7 @@ async def show_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        msg = f"• *{task.title}*\nДедлайн: {task.deadline.strftime('%d.%m %Y %H:%M')}"
+        msg = f"• *{task.title}*\nДедлайн: {timezone.localtime(task.deadline).strftime('%d.%m %Y %H:%M')}"
         await update.message.reply_text(
             msg,
             reply_markup=reply_markup,
@@ -266,7 +267,7 @@ async def handle_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"**Статус:** {status}\n"
                 f"**Приоритет:** {priority}\n"
                 f"**Создал:** {creator}\n"
-                f"**Дедлайн:** {task.deadline.strftime('%d.%m.%Y %H:%M')}\n\n"
+                f"**Дедлайн:** {timezone.localtime(task.deadline).strftime('%d.%m.%Y %H:%M')}\n\n"
                 f"{description}"
             )
 

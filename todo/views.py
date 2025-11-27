@@ -1,11 +1,12 @@
 import secrets
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
+from collections import defaultdict
 from django.utils.crypto import get_random_string
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView,TemplateView, UpdateView, DeleteView
 from todo.forms import CustomUserCreationForm, TaskForm
-from .models import TaskFile, UserModel, TaskModel, TaskHistoryModel, TelegramUserModel
+from .models import TaskFile, UserModel, TaskModel, TelegramUserModel
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.contrib.sites.shortcuts import get_current_site
@@ -64,7 +65,7 @@ class TaskListView(LoginRequiredMixin, ListView):
             'deadline', '-deadline',
             'status', '-status',
             'priority', '-priority',
-            'assignee__first_name', '-assignee__first_name'  # ← ДОБАВЛЕНО
+            'assignee__first_name', '-assignee__first_name'
         ]
         if sort_by in valid_sort_fields:
             queryset = queryset.order_by(sort_by)
@@ -72,6 +73,35 @@ class TaskListView(LoginRequiredMixin, ListView):
             queryset = queryset.order_by('-created_at')
 
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Генерация календаря
+        today = datetime.now().date()
+        first_day_of_month = today.replace(day=1)
+        last_day_of_month = (first_day_of_month + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+
+        # Собираем задачи по дням
+        tasks = self.get_queryset().filter(deadline__gte=first_day_of_month, deadline__lte=last_day_of_month)
+        calendar_tasks = defaultdict(list)
+        for task in tasks:
+            date_key = task.deadline.date()
+            calendar_tasks[date_key].append(task)
+
+        # Генерируем список дней месяца
+        days_in_month = []
+        current_day = first_day_of_month
+        while current_day <= last_day_of_month:
+            days_in_month.append(current_day)
+            current_day += timedelta(days=1)
+
+        context['calendar_days'] = {}
+        for day in days_in_month:
+            context['calendar_days'][day] = calendar_tasks[day]
+
+        context['today'] = today
+        return context
 
 class TaskDetailView(DetailView):
     model = TaskModel
@@ -126,11 +156,6 @@ class TaskHistoryListView(LoginRequiredMixin, ListView):
         context['show_completed'] = True  # ← флаг для шаблона
         context['title'] = "История задач"
         return context
-
-class TaskHistoryDetailView(DetailView):
-    model = TaskHistoryModel
-    template_name = 'todo/history/detail.html'
-    context_object_name = 'history'
 
 class TaskUpdateView(LoginRequiredMixin, UpdateView):
     model = TaskModel
@@ -225,6 +250,21 @@ def get_tasks_json(request):
         tasks = TaskModel.objects.filter(assignee=request.user, status__in=active_statuses)
     else:  # manager
         tasks = TaskModel.objects.filter(status__in=active_statuses)
+
+    # ДОБАВЬТЕ СОРТИРОВКУ
+    sort_by = request.GET.get('sort', '-created_at')
+    valid_sort_fields = [
+        'title', '-title',
+        'created_at', '-created_at',
+        'deadline', '-deadline',
+        'status', '-status',
+        'priority', '-priority',
+        'assignee__first_name', '-assignee__first_name'
+    ]
+    if sort_by in valid_sort_fields:
+        tasks = tasks.order_by(sort_by)
+    else:
+        tasks = tasks.order_by('-created_at')
     
     tasks_data = []
     for task in tasks:
@@ -236,7 +276,7 @@ def get_tasks_json(request):
             'priority': task.priority,
             'priority_display': task.get_priority_display(),
             'created_by__first_name': task.created_by.first_name if task.created_by else "—",
-            'deadline': task.deadline.strftime('%d.%m.%Y %H:%M'),
+            'deadline': timezone.localtime(task.deadline).strftime('%d.%m.%Y %H:%M'),
         }
         # Добавляем исполнителя ТОЛЬКО если пользователь — менеджер
         if request.user.role == 'manager':
@@ -247,6 +287,30 @@ def get_tasks_json(request):
         'tasks': tasks_data,
         'user_is_manager': request.user.role == 'manager'  # ← добавляем флаг
     })
+
+@login_required
+def get_calendar_events(request):
+    active_statuses = ['new', 'in_progress', 'overdue']
+    if request.user.role == 'employee':
+        tasks = TaskModel.objects.filter(assignee=request.user, status__in=active_statuses)
+    else:
+        tasks = TaskModel.objects.filter(status__in=active_statuses)
+
+    events = []
+    for task in tasks:
+        events.append({
+            'title': task.title,
+            'start': task.deadline.isoformat(),  # FullCalendar требует ISO 8601
+            'url': reverse_lazy('todo:task_detail', args=[task.id]),
+            'backgroundColor': {
+                'urgent': '#dc3545',
+                'high': '#fd7e14',
+                'medium': '#ffc107',
+                'low': '#28a745'
+            }.get(task.priority, '#6c757d'),
+            'borderColor': 'transparent',
+        })
+    return JsonResponse(events, safe=False) 
 
 @login_required
 def complete_task(request, pk):

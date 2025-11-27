@@ -69,23 +69,6 @@ class TaskModel(models.Model):
             logger.info(f"Задача {self.id} просрочена → меняем статус на 'overdue'")
             self.status = 'overdue'
         super().save(*args, **kwargs)
-
-class TaskHistoryModel(models.Model):
-    task = models.ForeignKey(TaskModel, on_delete=models.CASCADE, related_name='history', verbose_name='Задачи')
-    changed_by = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, verbose_name='Изменил')
-    changed_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата изменения")
-    field_changed = models.CharField(max_length=50, verbose_name='Поле')
-    old_value = models.TextField(blank=True, verbose_name='Старое значение')
-    new_value = models.TextField(blank=True, verbose_name='Новое значение')
-    reason = models.TextField(verbose_name='Причина изменения (например, перенос дедлайна)', blank=True)
-
-    class Meta:
-        verbose_name = "История задачи"
-        verbose_name_plural = "Истории задач"
-        ordering = ['-changed_at']
-
-    def __str__(self):
-        return f"{self.task.title} - {self.field_changed} ({self.changed_at})"
     
 class TelegramUserModel(models.Model):
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name="telegram_profile", null=True, blank=True)

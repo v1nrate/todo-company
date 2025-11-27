@@ -14,6 +14,9 @@ from pathlib import Path
 import json
 from django.conf import settings
 
+with open("settings.json", "r", encoding="utf-8") as f:
+    settings=json.load(f)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-i6+mvx3__bk085&sd26p8t06_12(=t)8g+w8%(c@#xi#lq@5dl'
+SECRET_KEY = settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -40,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'todo',
+    'bootstrap_datepicker_plus',
 ]
 
 MIDDLEWARE = [
@@ -113,8 +117,6 @@ LOGIN_URL = 'todo:login'
 LOGIN_REDIRECT_URL = 'todo:task_list'
 LOGOUT_REDIRECT_URL = 'todo:task_list'
 
-with open("settings.json", "r", encoding="utf-8") as f:
-    settings=json.load(f)
 
 TELEGRAM_BOT_TOKEN = settings['telegram_bot_token']
 TELEGRAM_BOT_USERNAME = "company_task_bot"  # ← замени на своё
@@ -134,9 +136,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -151,7 +153,14 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / "todo" / "static",  # ← указываем путь к статике внутри приложения
 ]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
