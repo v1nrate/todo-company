@@ -4,39 +4,49 @@
 {% block title %}Задачи{% endblock %}
 
 {% block content %}
-<div class="dashboard">
+<div class="tasks-page">
+    <!-- Левое меню -->
     <aside class="sidebar">
-        <h3>Меню</h3>
-        <ul>
-            <li><a href="{% url 'todo:task_list' %}" class="active">Задачи</a></li>
-            <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
-            <li><a href="{% url 'todo:history_list' %}">История</a></li>
-        </ul>
+        <div class="menu-section">
+            <h3 class="section-title"><i class="fas fa-bars"></i> Меню</h3>
+            <ul class="menu-list">
+                <li><a href="{% url 'todo:task_list' %}" class="active"><i class="fas fa-tasks"></i> Задачи</a></li>
+                <li><a href="{% url 'todo:user_list' %}"><i class="fas fa-users"></i> Команда</a></li>
+                <li><a href="{% url 'todo:history_list' %}"><i class="fas fa-history"></i> История</a></li>
+            </ul>
+        </div>
     </aside>
 
-    <div class="main-content">
-        <!-- Верхняя панель с кнопками -->
+    <!-- Основной контент -->
+    <main class="tasks-main">
+        <!-- Верхняя панель -->
         <div class="header-actions">
-            <a href="{% url 'todo:task_create' %}" class="btn btn-primary">Добавить задачу</a>
-            <div class="sort-controls" style="margin-top: 1rem;">
-                <strong>Сортировать по:</strong>
-                <a href="?sort=-created_at" class="btn {% if request.GET.sort == '-created_at' %}btn-primary{% else %}btn-outline{% endif %}">Создана ↓</a>
-                <a href="?sort=created_at" class="btn {% if request.GET.sort == 'created_at' %}btn-primary{% else %}btn-outline{% endif %}">Создана ↑</a>
-                <a href="?sort=-deadline" class="btn {% if request.GET.sort == '-deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↓</a>
-                <a href="?sort=deadline" class="btn {% if request.GET.sort == 'deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↑</a>
-                <a href="?sort=assignee__first_name" class="btn {% if request.GET.sort == 'assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↑</a>
-                <a href="?sort=-assignee__first_name" class="btn {% if request.GET.sort == '-assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↓</a>
-                <a href="?sort=priority" class="btn {% if request.GET.sort == 'priority' %}btn-primary{% else %}btn-outline{% endif %}">Приоритет</a>
-                <a href="?sort=status" class="btn {% if request.GET.sort == 'status' %}btn-primary{% else %}btn-outline{% endif %}">Статус</a>
+            <a href="{% url 'todo:task_create' %}" class="btn btn-action">+ Добавить задачу</a>
+            
+            <!-- Раскрывающийся список сортировки -->
+            <div class="sort-dropdown">
+                <label>Сортировать по:</label>
+                <select id="sort-select" onchange="applySort()">
+                    <option value="">— Выберите —</option>
+                    <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Создана ↓</option>
+                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Создана ↑</option>
+                    <option value="-deadline" {% if request.GET.sort == '-deadline' %}selected{% endif %}>Дедлайн ↓</option>
+                    <option value="deadline" {% if request.GET.sort == 'deadline' %}selected{% endif %}>Дедлайн ↑</option>
+                    {% if request.user.role == 'manager' %}
+                    <option value="assignee__first_name" {% if request.GET.sort == 'assignee__first_name' %}selected{% endif %}>Исполнитель ↑</option>
+                    <option value="-assignee__first_name" {% if request.GET.sort == '-assignee__first_name' %}selected{% endif %}>Исполнитель ↓</option>
+                    {% endif %}
+                    <option value="priority" {% if request.GET.sort == 'priority' %}selected{% endif %}>Приоритет</option>
+                    <option value="status" {% if request.GET.sort == 'status' %}selected{% endif %}>Статус</option>
+                </select>
             </div>
         </div>
 
         <!-- Два столбца: задачи + календарь -->
         <div class="content-wrapper">
-            <!-- Список задач (основной контент) -->
             <div class="tasks-column">
                 <div class="tasks-list" id="tasks-container">
-                    {% include "todo/tasks/_task_list_items.html" %}
+                    <div class="no-tasks">Загрузка задач...</div>
                 </div>
 
                 {% if is_paginated %}
@@ -54,7 +64,6 @@
                 {% endif %}
             </div>
 
-            <!-- Календарь справа -->
             <div class="calendar-column">
                 <div class="calendar-widget">
                     <h4>Календарь</h4>
@@ -62,10 +71,21 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script>
+function applySort() {
+    const sortValue = document.getElementById('sort-select').value;
+    let url = new URL(window.location);
+    if (sortValue) {
+        url.searchParams.set('sort', sortValue);
+    } else {
+        url.searchParams.delete('sort');
+    }
+    window.location.href = url.toString();
+}
+
 function loadTasks() {
     const url = new URL(window.location);
     const sortParam = url.searchParams.get('sort');
@@ -75,73 +95,76 @@ function loadTasks() {
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('tasks-container');
-            let html = '<ul>';
-            data.tasks.forEach(task => {
-                const statusClass = task.status === 'completed' ? 'completed' : task.status === 'overdue' ? 'overdue' : '';
-                html += `
-                    <li class="task-card ${statusClass}">
-                        <div class="task-header">
-                            <span class="task-title">${task.title}</span>
-                            <span class="task-priority priority-${task.priority}">${task.priority_display}</span>
-                        </div>
-                        <div class="task-meta">
-                            <span>Создал: ${task.created_by__first_name || "—"}</span>`;
-                // Показываем исполнителя только если пользователь — менеджер
-                if (data.user_is_manager) {
-                    html += `<span>Исполнитель: ${task.assignee__first_name || "—"}</span>`;
-                }
-                html += `
-                            <span>Дедлайн: ${task.deadline}</span>
-                            <span>Статус: ${task.status_display}</span>
-                        </div>
-                        <div class="task-actions">
-                            <a href="/tasks/${task.id}/" class="btn btn-sm btn-info">Подробнее</a>
-                            <a href="/tasks/${task.id}/edit/" class="btn btn-sm btn-warning">Редактировать</a>
-                            <a href="/tasks/${task.id}/complete/" class="btn btn-sm btn-success">Завершить</a>
-                        </div>
-                    </li>`;
-            });
-            html += '</ul>';
+            let html = '';
+            if (data.tasks.length === 0) {
+                html = '<div class="no-tasks">Нет активных задач</div>';
+            } else {
+                data.tasks.forEach(task => {
+                    const statusClass = task.status === 'completed' ? 'task-completed' : 
+                                       task.status === 'overdue' ? 'task-overdue' : '';
+                    
+                    html += `
+                        <div class="task-card ${statusClass}" data-task-id="${task.id}">
+                            <div class="task-header">
+                                <div class="task-title">
+                                    ${task.status === 'overdue' ? '<span>[Просрочено]</span> ' : ''}
+                                    ${task.title}
+                                </div>
+                                <span class="task-priority priority-${task.priority}">${task.priority_display}</span>
+                            </div>
+                            <div class="task-description">${task.description || "—"}</div>
+                            <div class="task-footer">
+                                <div class="task-meta">
+                                    <span>Дедлайн: ${task.deadline}</span>
+                                    <span>Создал: ${task.created_by__first_name || "—"}</span>
+                                    ${data.user_is_manager ? `<span>Исполнитель: ${task.assignee__first_name || "—"}</span>` : ''}
+                                </div>
+                                <div class="task-actions">
+                                    <a href="/tasks/${task.id}/edit/" class="btn btn-action">Редактировать</a>
+                                    <a href="/tasks/${task.id}/complete/" class="btn btn-action">Завершить</a>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            }
             container.innerHTML = html;
         })
-        .catch(error => console.error('Ошибка обновления задач:', error));
+        .catch(error => {
+            console.error('Ошибка обновления задач:', error);
+            document.getElementById('tasks-container').innerHTML = '<div class="no-tasks">Ошибка загрузки</div>';
+        });
 }
 
-// Загрузить задачи сразу
+// Загрузить задачи
 loadTasks();
 
+// Обновлять каждые 5 секунд
+setInterval(loadTasks, 5000);
+
+document.getElementById('tasks-container').addEventListener('click', function(e) {
+    // Находим ближайший элемент с классом .task-card
+    const taskCard = e.target.closest('.task-card');
+    // Игнорируем клик, если он был по кнопке "Редактировать" или "Завершить"
+    if (e.target.closest('.btn-edit') || e.target.closest('.btn-complete')) {
+        return;
+    }
+    // Если клик был по карточке задачи
+    if (taskCard) {
+        const taskId = taskCard.dataset.taskId;
+        if (taskId) {
+            window.location.href = `/tasks/${taskId}/`;
+        }
+    }
+});
+
+// Календарь
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
-
-    function getDayKey(date) {
-        const d = new Date(date);
-        return d.getFullYear() + '-' +
-               String(d.getMonth() + 1).padStart(2, '0') + '-' +
-               String(d.getDate()).padStart(2, '0');
-    }
-
     const eventsLoader = function(fetchInfo, successCallback, failureCallback) {
         fetch('{% url "todo:calendar_events" %}')
             .then(response => response.json())
             .then(events => {
-                const eventsByDay = {};
-                events.forEach(event => {
-                    const dayKey = getDayKey(event.start);
-                    if (!eventsByDay[dayKey]) {
-                        eventsByDay[dayKey] = [];
-                    }
-                    eventsByDay[dayKey].push(event);
-                });
-
-                const filteredEvents = [];
-                for (const day in eventsByDay) {
-                    const dayEvents = eventsByDay[day]
-                        .sort((a, b) => new Date(a.start) - new Date(b.start))
-                        .slice(0, 2);
-                    filteredEvents.push(...dayEvents);
-                }
-
-                successCallback(filteredEvents);
+                successCallback(events);
             })
             .catch(failureCallback);
     };
@@ -153,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth' // ← УБРАЛИ listWeek
+            right: 'dayGridMonth'
         },
         events: eventsLoader,
         eventContent: function(arg) {
@@ -167,14 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
         height: 'auto',
         aspectRatio: false,
         scrollTime: '00:00:00',
-        dayMaxEvents: false,
-        moreLinkClick: null
+        dayMaxEvents: false
     });
-
     calendar.render();
 });
-
-// Обновлять каждые 5 секунд
-setInterval(loadTasks, 5000);
 </script>
 {% endblock %}

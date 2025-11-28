@@ -6,91 +6,157 @@
 {% block title %}{{ task.title }}{% endblock %}
 
 {% block content %}
-<div class="task-detail">
-    <h2>{{ task.title }}</h2>
-    <div class="task-info">
-        <div class="info-item">
-            <strong>Исполнитель:</strong> {{ task.assignee.first_name }}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<div class="task-detail-page">
+    <!-- Левое меню -->
+    <aside class="sidebar">
+        <div class="menu-section">
+            <h3 class="section-title"><i class="fas fa-bars"></i> Меню</h3>
+            <ul class="menu-list">
+                <li><a href="{% url 'todo:task_list' %}"><i class="fas fa-tasks"></i> Задачи</a></li>
+                <li><a href="{% url 'todo:user_list' %}"><i class="fas fa-users"></i> Команда</a></li>
+                <li><a href="{% url 'todo:history_list' %}"><i class="fas fa-history"></i> История</a></li>
+            </ul>
         </div>
-        <div class="info-item">
-            <strong>Создал:</strong> {{ task.created_by.first_name|default:"—" }}
-        </div>
-        <div class="info-item">
-            <strong>Статус:</strong> {{ task.get_status_display }}
-        </div>
-        <div class="info-item">
-            <strong>Приоритет:</strong> {{ task.get_priority_display }}
-        </div>
-        <div class="info-item">
-            <strong>Дедлайн:</strong> {{ task.deadline|date:"d.m.Y H:i" }}
-        </div>
-        <div class="info-item">
-            <strong>Создана:</strong> {{ task.created_at|date:"d.m.Y H:i" }}
-        </div>
-        <div class="info-item">
-            <strong>Описание:</strong> {{ task.description|linebreaks|default:"—" }}
-        </div>
-        <div class="info-item">
-        {% if task.files.exists %}
-            <div class="info-item">
-                <strong>Файлы:</strong>
-                <ul>
-                {% for file in task.files.all %}
-                    <li>
-                    <a href="{{ file.file.url }}" target="_blank">
-                        Скачать {{ file.file.name|basename }}
-                    </a>
-                    </li>
-                {% endfor %}
-                </ul>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="tasks-main">
+        <div class="task-header-actions">
+            <h2 class="page-title">{{ task.title }}</h2>
+            <div class="task-header-buttons">
+                <a href="{% url 'todo:task_update' task.pk %}" class="btn-action">Редактировать</a>
+                {% if task.status != 'completed' %}
+                    <a href="{% url 'todo:task_complete' task.pk %}" class="btn-action">Завершить</a>
+                {% endif %}
             </div>
-        {% endif %}
         </div>
-    </div>
 
-    <!-- Комментарии -->
-    <div class="comments-section" style="margin-top: 2rem;">
-        <h3>Комментарии ({{ task.comments.count }})</h3>
+        <div class="task-columns">
+            <!-- Левая колонка -->
+            <div class="task-left-column">
+                <!-- Теги -->
+                <div class="task-tags">
+                    <span class="task-priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                    <span class="task-status status-{{ task.status }}">{{ task.get_status_display }}</span>
+                </div>
 
-        <!-- Форма добавления -->
-        <form method="post" autocomplete="off">
-            {% csrf_token %}
-            {{ comment_form.text|attr:"autocomplete:off" }}
-            <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Добавить комментарий</button>
-        </form>
-
-        <!-- Список комментариев -->
-        {% if task.comments.exists %}
-            <div class="comments-list">
-                {% for comment in task.comments.all|dictsortreversed:"created_at" %}
-                <div class="comment-card" style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #6c5ce7;">
-                    <div style="font-weight: 600; color: #6c5ce7;">{{ comment.author.first_name }}</div>
-                    <div style="font-size: 0.95rem; margin: 6px 0;">{{ comment.text|linebreaks }}</div>
-                    <div style="font-size: 0.85rem; color: #888;">
-                        {{ comment.created_at|date:"d.m.Y H:i" }}
+                <!-- Описание -->
+                <div class="task-card">
+                    <h3>Описание</h3>
+                    <div class="task-description">
+                        {{ task.description|linebreaks|default:"—" }}
                     </div>
                 </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>Комментариев пока нет.</p>
-        {% endif %}
-    </div>
 
-    <div class="task-actions">
-        <a href="{% url 'todo:task_list' %}" class="btn btn-secondary">Назад к списку</a>
-        <a href="{% url 'todo:task_update' task.pk %}" class="btn btn-warning">Редактировать</a>
-        <a href="{% url 'todo:task_delete' task.pk %}" class="btn btn-danger">Удалить</a>
-    </div>
+                <!-- Вложения -->
+                <div class="task-card">
+                    <div class="attachment-header">
+                        <h3>Вложения ({{ task.files.count }})</h3>
+                        <form method="post" enctype="multipart/form-data" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="file" name="files" id="upload-file-input" multiple style="display: none;" onchange="this.form.submit()">
+                            <label for="upload-file-input" class="btn btn-secondary btn-sm" style="cursor: pointer; margin-left: 8px;">
+                                Добавить файл
+                            </label>
+                        </form>
+                    </div>
+                    <div class="attachments-list">
+                        {% for file in task.files.all %}
+                            <div class="attachment-item" data-file-id="{{ file.id }}">
+                                <i class="fas fa-paperclip"></i>
+                                <a href="{{ file.file.url }}" target="_blank" class="attachment-link">
+                                    {{ file.file.name|basename }}
+                                </a>
+                                <button type="button" class="btn-delete" data-file-id="{{ file.id }}">Удалить</button>
+                            </div>
+                        {% empty %}
+                            <p style="color: #6b7280; font-style: italic;">Файлов нет</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Комментарии -->
+                <div class="task-card">
+                    <h3>Комментарии ({{ task.comments.count }})</h3>
+                    <!-- Форма ввода -->
+                    <form method="post" class="comment-form">
+                        {% csrf_token %}
+                        {{ comment_form.text }}
+                        <button type="submit" class="btn-send">Отправить</button>
+                    </form>
+                    <!-- Список комментариев -->
+                    {% if task.comments.exists %}
+                        <div class="comments-list">
+                            {% for comment in task.comments.all|dictsortreversed:"created_at" %}
+                                <div class="comment-card">
+                                    <div class="comment-author">
+                                        <strong>{{ comment.author.first_name }}</strong>
+                                        <span class="comment-date">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                                    </div>
+                                    <div class="comment-text">
+                                        {{ comment.text|linebreaks }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Правая колонка -->
+            <div class="task-right-column">
+                <div class="task-info-card">
+                    <h3>Информация о задаче</h3>
+                    <div class="info-item">
+                        <strong>Создал:</strong> {{ task.created_by.first_name|default:"—" }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Исполнитель:</strong> {{ task.assignee.first_name|default:"—" }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Дедлайн:</strong> {{ task.deadline|date:"d.m.Y H:i" }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Статус:</strong> {{ task.get_status_display }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Создана:</strong> {{ task.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                    {% if task.reason_for_postponement %}
+                        <div class="info-item">
+                            <strong>Причина переноса:</strong> {{ task.reason_for_postponement }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const textarea = document.querySelector('textarea[name="text"]');
-    if (textarea && urlParams.has('comment')) {
-        textarea.value = '';
-    }
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    document.querySelectorAll('.btn-delete').forEach(button => {
+        button.addEventListener('click', function() {
+            const fileId = this.dataset.fileId;
+            const item = this.closest('.attachment-item');
+            fetch(`/tasks/${fileId}/delete-file/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            }).then(r => {
+                if (r.ok) {
+                    item.remove();
+                    const h3 = document.querySelector('.attachment-header h3');
+                    if (h3) {
+                        const cnt = parseInt(h3.textContent.match(/\((\d+)\)/)[1]);
+                        h3.textContent = h3.textContent.replace(`(${cnt})`, `(${Math.max(0, cnt - 1)})`);
+                    }
+                }
+            }).catch(e => console.error(e));
+        });
+    });
 });
 </script>
 {% endblock %}

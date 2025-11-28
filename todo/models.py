@@ -32,6 +32,10 @@ class UserModel(AbstractUser):
     def __str__(self):
         return f"{self.first_name} ({self.get_role_display()})"
     
+    @property
+    def active_tasks_count(self):
+        return self.tasks.exclude(status='completed').count()
+    
 class TaskModel(models.Model):
     PRIORITY_CHOICES = [
         ('low', 'Низкий'),
@@ -74,6 +78,7 @@ class TaskModel(models.Model):
 class TelegramUserModel(models.Model):
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name="telegram_profile", null=True, blank=True)
     telegram_id = models.CharField(max_length=50, unique=True, verbose_name="Telegram ID")
+    username = models.CharField(max_length=100, blank=True, null=True, verbose_name="Telegram username")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     last_notification = models.DateTimeField(null=True, blank=True, verbose_name="Последнее уведомление")
 
@@ -82,6 +87,8 @@ class TelegramUserModel(models.Model):
         verbose_name_plural = "Telegram-пользователи"
 
     def __str__(self):
+        if self.username:
+            return f"{self.user.username} → @{self.username}"
         return f"{self.user.username} → {self.telegram_id}"
     
 class TaskFile(models.Model):

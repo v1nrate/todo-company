@@ -7,24 +7,46 @@
     <title>{% block title %}Корпоративный To-Do List{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css' rel='stylesheet' />
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body class="{% if request.user.is_authenticated %}authenticated{% endif %}">
-    <header>
-        <div class="container">
-            {% if request.user.is_authenticated %}
-                <a href="{% url 'todo:user_detail' request.user.id %}">Привет, {{ request.user.first_name }} ({{ request.user.get_role_display }})</a>
-                <form method="post" action="{% url 'todo:logout' %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-link" style="padding: 0; border: none; background: none; color: inherit; text-decoration: underline;">
-                        Выход
-                    </button>
-                </form>
-            {% else %}
-                <a href="{% url 'todo:login' %}">Вход</a>
-            {% endif %}
+
+    {% if request.user.is_authenticated %}
+    <header class="app-header">
+        <div class="header-container">
+            <div class="header-right">
+                <div class="header-user-info">
+                    <a href="{% url 'todo:user_detail' request.user.id %}" class="header-user-link">
+                        Привет, {{ request.user.first_name }} ({{ request.user.get_role_display }})
+                    </a>
+                </div>
+                <button class="user-dropdown-btn" id="user-menu-toggle">
+                    <i class="fas fa-user"></i>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" id="user-dropdown-menu">
+                    <div class="dropdown-item">
+                        <i class="far fa-envelope"></i> Тема: {{ request.user.theme|default:"Светлая" }}
+                    </div>
+                    <div class="dropdown-item">
+                        <i class="fab fa-telegram-plane"></i> Телеграм:
+                        {% if request.user.telegram_profile and request.user.telegram_profile.username %}
+                            @{{ request.user.telegram_profile.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'todo:logout' %}" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </a>
+                </div>
+            </div>
         </div>
     </header>
+    {% endif %}
 
     <main class="container">
         {% block content %}
@@ -34,6 +56,25 @@
     <footer>
         <p>&copy; 2025 Корпоративный To-Do List</p>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('user-menu-toggle');
+            const dropdownMenu = document.getElementById('user-dropdown-menu');
+
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdownMenu.classList.toggle('show');
+            });
+
+            // Закрыть меню при клике вне его
+            document.addEventListener('click', function(e) {
+                if (!toggleBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                    dropdownMenu.classList.remove('show');
+                }
+            });
+        });
+    </script>
 </body>
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 </html>

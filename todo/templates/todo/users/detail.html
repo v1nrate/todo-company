@@ -1,76 +1,123 @@
 <!-- todo/templates/todo/users/detail.html -->
 {% extends "base.html" %}
 
-{% block title %}{{ profile.username }}{% endblock %}
+{% block title %}{{ profile.first_name }} {{ profile.last_name }}{% endblock %}
 
 {% block content %}
-
-{% if profile.telegram_profile %}
-    {% if request.user == profile %}
-        <a href="{% url 'todo:unlink_telegram' %}" class="btn btn-danger">Отвязать Telegram</a>
-    {% endif %}
-{% else %}
-  {% if telegram_link_code %}
-    <a href="https://t.me/{{ TELEGRAM_BOT_USERNAME }}?start={{ telegram_link_code }}"
-       class="btn btn-primary"
-       target="_blank">
-      Привязать Telegram
-    </a>
-  {% endif %}
-{% endif %}
-
-<div class="profile">
-    {% csrf_token %}
-    <div class="profile-header">
-        <h2>{{ profile.username }}</h2>
-        <span class="role">{{ profile.get_role_display }}</span>
-    </div>
-
-    <div class="profile-stats">
-        <div class="stat-card">
-            <h4>Всего задач</h4>
-            <p>{{ profile.tasks.count }}</p>
+<div class="profile-page">
+    <!-- Левое меню -->
+    <aside class="sidebar">
+        <div class="menu-section">
+            <h3 class="section-title"><i class="fas fa-bars"></i> Меню</h3>
+            <ul class="menu-list">
+                <li><a href="{% url 'todo:task_list' %}"><i class="fas fa-tasks"></i> Задачи</a></li>
+                <li><a href="{% url 'todo:user_list' %}"><i class="fas fa-users"></i> Команда</a></li>
+                <li><a href="{% url 'todo:history_list' %}"><i class="fas fa-history"></i> История</a></li>
+            </ul>
         </div>
-        <div class="stat-card">
-            <h4>Завершено</h4>
-            <p>{{ profile.completed_tasks_count }}</p>
-        </div>
-        <div class="stat-card">
-            <h4>В работе</h4>
-            <p>{{ profile.in_progress_tasks_count }}</p>
-        </div>
-        <div class="stat-card">
-            <h4>Просрочено</h4>
-            <p>{{ profile.overdue_tasks_count }}</p>
-        </div>
-    </div>
+    </aside>
 
-    <h3>Назначенные задачи</h3>
-    <ul class="tasks-list">
-    {% for task in profile.tasks.all %}
-        <li class="task-item">
-            <a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a>
-            ({{ task.get_status_display }})
-        </li>
-    {% empty %}
-        <li>Нет назначенных задач</li>
-    {% endfor %}
-    </ul>
+    <!-- Основной контент -->
+    <main class="profile-main">
+        <h1 class="page-title">Профиль сотрудника</h1>
 
-    <h3>Созданные задачи</h3>
-    <ul class="tasks-list">
-    {% for task in profile.created_tasks.all %}
-        <li class="task-item">
-            <a href="{% url 'todo:task_detail' task.pk %}">{{ task.title }}</a>
-            ({{ task.get_status_display }})
-        </li>
-    {% empty %}
-        <li>Нет созданных задач</li>
-    {% endfor %}
-    </ul>
+        <div class="profile-layout">
+            <!-- Левая колонка: профиль + статистика -->
+            <div class="profile-left-column">
+                <!-- Карточка профиля -->
+                <div class="profile-card">
+                    <div class="avatar-circle">
+                        {% if profile.avatar %}
+                            <img src="{{ profile.avatar.url }}" alt="Аватар">
+                        {% else %}
+                            <span class="initials">{{ profile.first_name|slice:":1" }}{{ profile.last_name|slice:":1" }}</span>
+                        {% endif %}
+                    </div>
+                    <h3>{{ profile.first_name }} {{ profile.last_name }}</h3>
+                    <p class="role">{{ profile.get_role_display }}</p>
 
-    <div class="profile-actions">
-        <a href="{% url 'todo:task_list' %}" class="btn btn-secondary">Назад к списку</a>
-    </div>
+                    <!-- Только Telegram, по центру -->
+                    {% if profile.telegram_profile and profile.telegram_profile.username %}
+                        <div class="telegram-handle">
+                            <i class="fab fa-telegram-plane"></i> @{{ profile.telegram_profile.username }}
+                        </div>
+                    {% elif profile.telegram_profile %}
+                        <div class="telegram-handle">
+                            <i class="fab fa-telegram-plane"></i> ID: {{ profile.telegram_profile.telegram_id }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Статистика -->
+                <div class="stats-card">
+                    <h4>Статистика</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-number stat-total">{{ profile.tasks.count }}</span>
+                            <span class="stat-label">Всего задач</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number stat-completed">{{ profile.completed_tasks_count }}</span>
+                            <span class="stat-label">Завершено</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number stat-in-progress">{{ profile.active_tasks_count }}</span>
+                            <span class="stat-label">В работе</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number stat-overdue">{{ profile.overdue_tasks_count }}</span>
+                            <span class="stat-label">Просрочено</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая колонка: задачи -->
+            <div class="profile-right-column">
+                <div class="tasks-header">
+                    <h3>Задачи {{ profile.first_name }}</h3>
+                    <a href="{% url 'todo:task_create' %}" class="btn btn-action">+ Новая задача</a>
+                </div>
+
+                <div class="tasks-list">
+                    {% for task in active_tasks %}
+                    <div class="task-card {% if task.status == 'overdue' %}task-overdue{% endif %}">
+                        <div class="task-header">
+                            <div class="task-title">
+                                {% if task.status == 'overdue' %}
+                                    <span>[Просрочено]</span>
+                                {% endif %}
+                                {{ task.title }}
+                            </div>
+                            <!-- Приоритет справа сверху -->
+                            <span class="task-priority priority-{{ task.priority }}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </div>
+
+                        <div class="task-description">{{ task.description }}</div>
+
+                        <div class="task-footer">
+                            <div class="task-meta">
+                                <span>Дедлайн: {{ task.deadline|date:"d E Y H:i" }}</span>
+                            </div>
+                            <!-- Кнопки справа внизу -->
+                            <div class="task-actions">
+                                <a href="{% url 'todo:task_update' task.pk %}" class="btn btn-action">Редактировать</a>
+                                <a href="{% url 'todo:task_complete' task.pk %}" class="btn btn-action">Завершить</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-tasks">Нет активных задач</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <a href="{% url 'todo:user_list' %}" class="btn btn-secondary">Назад к команде</a>
+        </div>
+    </main>
 </div>
 {% endblock %}

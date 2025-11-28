@@ -42,9 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'todo',
     'bootstrap_datepicker_plus',
     'widget_tweaks',
+    'todo.apps.TodoConfig',
 ]
 
 MIDDLEWARE = [

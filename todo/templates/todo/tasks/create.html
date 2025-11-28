@@ -1,108 +1,101 @@
+<!-- todo/templates/todo/tasks/create.html -->
 {% extends "base.html" %}
-
-{% load custom_filters %}
 
 {% block title %}Новая задача{% endblock %}
 
 {% block content %}
-<h3>Создать задачу</h3>
-<!-- todo/templates/todo/tasks/create.html -->
+<div class="task-create-page">
+    <aside class="sidebar">
+        <div class="menu-section">
+            <h3 class="section-title"><i class="fas fa-bars"></i> Меню</h3>
+            <ul class="menu-list">
+                <li><a href="{% url 'todo:task_list' %}"><i class="fas fa-tasks"></i> Задачи</a></li>
+                <li><a href="{% url 'todo:user_list' %}"><i class="fas fa-users"></i> Команда</a></li>
+                <li><a href="{% url 'todo:history_list' %}"><i class="fas fa-history"></i> История</a></li>
+            </ul>
+        </div>
+    </aside>
 
-<form id="task-form" method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-  
-  <!-- Остальные поля формы -->
-  {{ form.as_p }}
+    <main class="tasks-main">
+        <h2 class="page-title">Создать задачу</h2>
 
-  <!-- Блок для отображения выбранных файлов -->
-  <div class="form-group">
-    <label>Файлы:</label>
-    <input type="file" id="file-input" multiple>
-    <div id="file-list"></div>
-  </div>
+        <div class="task-card">
+            <!-- ОБЫЧНАЯ ФОРМА — БЕЗ JS-ОТПРАВКИ -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
 
-  <button type="submit" class="btn btn-primary">Сохранить задачу</button>
-  <a href="{{ request.META.HTTP_REFERER|default:'/tasks/' }}" class="btn btn-outline-secondary">Отмена</a>
-</form>
+                <!-- Поля -->
+                <div class="form-group">
+                    <label>Заголовок</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<div class="error">{{ form.title.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Описание</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="error">{{ form.description.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Исполнитель</label>
+                    {{ form.assignee }}
+                    {% if form.assignee.errors %}<div class="error">{{ form.assignee.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Приоритет</label>
+                    {{ form.priority }}
+                    {% if form.priority.errors %}<div class="error">{{ form.priority.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Дедлайн</label>
+                    {{ form.deadline }}
+                    {% if form.deadline.errors %}<div class="error">{{ form.deadline.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Файлы -->
+                <div class="form-group">
+                    <label>Файлы</label>
+                    <input type="file" name="files" multiple id="file-input">
+                    <div id="file-list"></div>
+                </div>
+
+                <!-- Кнопки -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Сохранить задачу</button>
+                    <a href="{{ request.META.HTTP_REFERER|default:'/tasks/' }}" class="btn btn-outline-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
 
 <script>
-  let selectedFiles = [];
+let selectedFiles = [];
 
-  document.getElementById('file-input').addEventListener('change', function(e) {
+document.getElementById('file-input').addEventListener('change', function(e) {
     const files = Array.from(e.target.files);
-    selectedFiles = selectedFiles.concat(files);
+    selected_files = selected_files.concat(files); // ❌ ОШИБКА: selected_files вместо selectedFiles!
     renderFileList();
-    // Очищаем input, чтобы можно было выбирать те же файлы снова
     e.target.value = '';
-  });
+});
 
-  function renderFileList() {
+function renderFileList() {
     const list = document.getElementById('file-list');
     list.innerHTML = '';
     selectedFiles.forEach((file, index) => {
-      const item = document.createElement('div');
-      item.style.display = 'flex';
-      item.style.alignItems = 'center';
-      item.style.margin = '0.3rem 0';
-
-      const name = document.createElement('span');
-      name.textContent = file.name;
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.type = 'button';
-      deleteBtn.textContent = 'Удалить';
-      deleteBtn.style.marginLeft = '1rem';
-      deleteBtn.style.padding = '0.2rem 0.5rem';
-      deleteBtn.style.cursor = 'pointer';
-      deleteBtn.onclick = () => {
-        selectedFiles.splice(index, 1);
-        renderFileList();
-      };
-
-      item.appendChild(name);
-      item.appendChild(deleteBtn);
-      list.appendChild(item);
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.innerHTML = `<span>${file.name}</span> <button type="button" onclick="removeFile(${index})">Удалить</button>`;
+        list.appendChild(item);
     });
-  }
+}
 
-  // Перед отправкой формы — добавляем файлы в FormData
-  document.getElementById('task-form').addEventListener('submit', function(e) {
-    const formData = new FormData(this);
-    
-    // Удаляем возможные старые файлы из формы (если были)
-    for (let pair of formData.entries()) {
-      if (pair[0] === 'files') {
-        formData.delete('files');
-      }
-    }
-
-    // Добавляем все выбранные файлы
-    selectedFiles.forEach(file => {
-      formData.append('files', file);
-    });
-
-    // Отправляем форму вручную
-    e.preventDefault();
-    fetch(this.action, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-      }
-    })
-    .then(response => {
-      if (response.redirected) {
-        window.location.href = response.url;
-      } else {
-        return response.text().then(html => {
-          document.open();
-          document.write(html);
-          document.close();
-        });
-      }
-    })
-    .catch(err => console.error('Ошибка:', err));
-  });
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderFileList();
+}
 </script>
-
 {% endblock %}

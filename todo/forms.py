@@ -83,7 +83,8 @@ class CommentForm(forms.ModelForm):
             'text': forms.Textarea(attrs={
                 'rows': 3,
                 'placeholder': 'Напишите комментарий...',
-                'class': 'form-control'
+                'class': 'form-control',
+                'autocomplete': 'off',  # ← Добавляем здесь!
             })
         }
         labels = {

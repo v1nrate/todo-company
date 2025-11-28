@@ -1,67 +1,122 @@
+<!-- todo/templates/todo/history_list.html -->
 {% extends "base.html" %}
 
 {% block title %}История задач{% endblock %}
 
 {% block content %}
-<div class="dashboard">
+<div class="tasks-page">
+    <!-- Левое меню -->
     <aside class="sidebar">
-        <h3>Меню</h3>
-        <ul>
-            <li><a href="{% url 'todo:task_list' %}">Задачи</a></li>
-            <li><a href="{% url 'todo:user_list' %}">Пользователи</a></li>
-            <li><a href="{% url 'todo:history_list' %}" class="active">История</a></li>
-        </ul>
-    </aside>
-
-    <div class="main-content">
-        <h2>История задач</h2>
-
-        <!-- Кнопки сортировки -->
-        <div class="sort-controls">
-            <strong>Сортировать по:</strong>
-            <a href="?sort=-created_at" class="btn {% if request.GET.sort == '-created_at' %}btn-primary{% else %}btn-outline{% endif %}">Дата создания ↓</a>
-            <a href="?sort=created_at" class="btn {% if request.GET.sort == 'created_at' %}btn-primary{% else %}btn-outline{% endif %}">Дата создания ↑</a>
-            <a href="?sort=-deadline" class="btn {% if request.GET.sort == '-deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↓</a>
-            <a href="?sort=deadline" class="btn {% if request.GET.sort == 'deadline' %}btn-primary{% else %}btn-outline{% endif %}">Дедлайн ↑</a>
-            <a href="?sort=assignee__first_name" class="btn {% if request.GET.sort == 'assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↑</a>
-            <a href="?sort=-assignee__first_name" class="btn {% if request.GET.sort == '-assignee__first_name' %}btn-primary{% else %}btn-outline{% endif %}">Исполнитель ↓</a>
-            <a href="?sort=priority" class="btn {% if request.GET.sort == 'priority' %}btn-primary{% else %}btn-outline{% endif %}">Приоритет</a>
-        </div>
-
-        <div class="tasks-list">
-            <ul>
-                {% for task in tasks %}
-                  <li class="task-card {% if task.status == 'completed' %}completed{% elif task.status == 'overdue' %}overdue{% endif %}">
-                      <div class="task-header">
-                          <span class="task-title">{{ task.title }}</span>
-                          <span class="task-priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
-                      </div>
-                      <div class="task-meta">
-                          <span>Создал: {{ task.created_by.first_name|default:"—" }}</span>
-                          {% if request.user.role == 'manager' %}
-                            <span>Исполнитель: {{ task.assignee.first_name|default:"—" }}</span>
-                          {% endif %}
-                          <span>Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}</span>
-                          <span>Статус: {{ task.get_status_display }}</span>
-                      </div>
-                      <div class="task-actions">
-                          <a href="{% url 'todo:task_detail' task.pk %}">Подробнее</a>
-                          {% if task.status != 'completed' %}
-                              <a href="{% url 'todo:task_complete' task.pk %}" class="btn btn-sm btn-success">Завершить</a>
-                          {% endif %}
-                      </div>
-                  </li>
-              {% empty %}
-                  <li>Нет задач.</li>
-              {% endfor %}
+        <div class="menu-section">
+            <h3 class="section-title"><i class="fas fa-bars"></i> Меню</h3>
+            <ul class="menu-list">
+                <li><a href="{% url 'todo:task_list' %}"><i class="fas fa-tasks"></i> Задачи</a></li>
+                <li><a href="{% url 'todo:user_list' %}"><i class="fas fa-users"></i> Команда</a></li>
+                <li><a href="{% url 'todo:history_list' %}" class="active"><i class="fas fa-history"></i> История</a></li>
             </ul>
         </div>
+    </aside>
 
+    <!-- Основной контент -->
+    <main class="tasks-main">
+        <h2 class="page-title">История задач</h2>
+
+        <!-- Панель сортировки -->
+        <div class="header-actions">
+            <div class="sort-dropdown">
+                <label>Сортировать по:</label>
+                <select id="sort-select" onchange="applySort()">
+                    <option value="">— Выберите —</option>
+                    <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Создана ↓</option>
+                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Создана ↑</option>
+                    <option value="-deadline" {% if request.GET.sort == '-deadline' %}selected{% endif %}>Дедлайн ↓</option>
+                    <option value="deadline" {% if request.GET.sort == 'deadline' %}selected{% endif %}>Дедлайн ↑</option>
+                    <option value="assignee__first_name" {% if request.GET.sort == 'assignee__first_name' %}selected{% endif %}>Исполнитель ↑</option>
+                    <option value="-assignee__first_name" {% if request.GET.sort == '-assignee__first_name' %}selected{% endif %}>Исполнитель ↓</option>
+                    <option value="priority" {% if request.GET.sort == 'priority' %}selected{% endif %}>Приоритет</option>
+                    <option value="status" {% if request.GET.sort == 'status' %}selected{% endif %}>Статус</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Список задач -->
+        <div class="tasks-list" id="history-tasks-container">
+            {% for task in tasks %}
+                <div class="task-card {% if task.status == 'completed' %}task-completed{% elif task.status == 'overdue' %}task-overdue{% endif %}"
+                    data-task-id="{{ task.pk }}">
+                    <div class="task-header">
+                        <div class="task-title">
+                            {{ task.title }}
+                        </div>
+                        <span class="task-priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                    </div>
+                    <div class="task-description">
+                        {{ task.description|default:"—" }}
+                    </div>
+                    <div class="task-footer">
+                        <div class="task-meta">
+                            <span>Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}</span>
+                            <span>Создал: {{ task.created_by.first_name|default:"—" }}</span>
+                            {% if request.user.role == 'manager' %}
+                                <span>Исполнитель: {{ task.assignee.first_name|default:"—" }}</span>
+                            {% endif %}
+                            <span>Статус: {{ task.get_status_display }}</span>
+                        </div>
+                        <div class="task-actions">
+                            {% if task.status != 'completed' %}
+                                <a href="{% url 'todo:task_complete' task.pk %}" class="btn btn-action">Завершить</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="no-tasks">Нет завершённых или просроченных задач</div>
+            {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
         {% if is_paginated %}
-          <div class="pagination">
-            <!-- пагинация -->
-          </div>
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">&laquo; первая</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">предыдущая</a>
+            {% endif %}
+            <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">следующая</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">последняя &raquo;</a>
+            {% endif %}
+        </div>
         {% endif %}
-    </div>
+    </main>
 </div>
+
+<script>
+function applySort() {
+    const sortValue = document.getElementById('sort-select').value;
+    let url = new URL(window.location);
+    if (sortValue) {
+        url.searchParams.set('sort', sort_value);
+    } else {
+        url.searchParams.delete('sort');
+    }
+    window.location.href = url.toString();
+}
+
+document.getElementById('history-tasks-container').addEventListener('click', function(e) {
+    // Игнорируем клик по кнопке "Завершить"
+    if (e.target.closest('.btn-complete')) {
+        return;
+    }
+
+    // Находим карточку задачи
+    const taskCard = e.target.closest('.task-card');
+    if (taskCard) {
+        const taskId = taskCard.dataset.taskId;
+        if (taskId) {
+            window.location.href = '{% url "todo:task_detail" 0 %}'.replace('/0/', '/' + taskId + '/');
+        }
+    }
+});
+</script>
 {% endblock %}

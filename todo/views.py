@@ -38,13 +38,18 @@ class UserDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Генерируем код, если его нет или он просрочен
-        if not self.request.user.telegram_link_code or \
-           (self.request.user.telegram_link_expires and timezone.now() > self.request.user.telegram_link_expires):
-            self.request.user.telegram_link_code = secrets.token_urlsafe(16)
-            self.request.user.telegram_link_expires = timezone.now() + timedelta(minutes=10)
-            self.request.user.save()
-        context['telegram_link_code'] = self.request.user.telegram_link_code
+        user = self.request.user
+
+        # Генерируем Telegram-код (как у тебя уже есть)
+        if not user.telegram_link_code or (user.telegram_link_expires and timezone.now() > user.telegram_link_expires):
+            user.telegram_link_code = secrets.token_urlsafe(16)
+            user.telegram_link_expires = timezone.now() + timedelta(minutes=10)
+            user.save()
+        context['telegram_link_code'] = user.telegram_link_code
+
+        # ДОБАВЛЯЕМ ТОЛЬКО АКТИВНЫЕ ЗАДАЧИ (не завершённые)
+        context['active_tasks'] = self.object.tasks.exclude(status='completed')
+
         return context
 
 
@@ -119,17 +124,38 @@ class TaskDetailView(DetailView):
 
     def post(self, request, *args, **kwargs):
         task = self.get_object()
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.task = task
-            comment.author = request.user
-            comment.save()
+
+        # Проверка прав
+        if not (request.user == task.assignee or request.user == task.created_by or request.user.role == 'manager'):
+            messages.error(request, "У вас нет прав для загрузки файлов к этой задаче.")
             return redirect('todo:task_detail', pk=task.pk)
+
+        # Обработка комментария (если есть поле 'text')
+        if 'text' in request.POST:
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.task = task
+                comment.author = request.user
+                comment.save()
+                messages.success(request, "Комментарий добавлен.")
+                return redirect('todo:task_detail', pk=task.pk)
+            else:
+                context = self.get_context_data()
+                context['comment_form'] = form
+                return self.render_to_response(context)
+
+        # Обработка файлов (если есть загрузка)
+        elif 'files' in request.FILES:
+            files = request.FILES.getlist('files')  # ← принимает несколько файлов!
+            for f in files:
+                TaskFile.objects.create(task=task, file=f)
+            messages.success(request, f"Загружено файлов: {len(files)}.")
+            return redirect('todo:task_detail', pk=task.pk)
+
         else:
-            context = self.get_context_data()
-            context['comment_form'] = form
-            return self.render_to_response(context)
+            messages.error(request, "Некорректный запрос.")
+            return redirect('todo:task_detail', pk=task.pk)
     
 class TaskCreateView(LoginRequiredMixin, CreateView):
     model = TaskModel
@@ -257,7 +283,7 @@ def activate(request, uidb64, token):
 def delete_file(request, file_id):
     try:
         file_obj = TaskFile.objects.get(pk=file_id)
-        # Проверка: пользователь может удалять файл только своей задачи
+        # Проверка доступа
         if request.user.role == 'employee' and file_obj.task.assignee != request.user:
             return JsonResponse({'success': False, 'error': 'Нет доступа'}, status=403)
 
@@ -265,7 +291,7 @@ def delete_file(request, file_id):
         return JsonResponse({'success': True})
     except TaskFile.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Файл не найден'}, status=404)
-
+    
 @login_required
 def get_tasks_json(request):
     active_statuses = ['new', 'in_progress', 'overdue']  # ← ЗАВЕРШЁННЫЕ ИСКЛЮЧЕНЫ!
