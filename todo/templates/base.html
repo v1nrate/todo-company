@@ -28,20 +28,26 @@
                 </button>
                 <div class="dropdown-menu" id="user-dropdown-menu">
                     <div class="dropdown-item">
-                        <i class="far fa-envelope"></i> Тема: {{ request.user.theme|default:"Светлая" }}
-                    </div>
-                    <div class="dropdown-item">
                         <i class="fab fa-telegram-plane"></i> Телеграм:
-                        {% if request.user.telegram_profile and request.user.telegram_profile.username %}
-                            @{{ request.user.telegram_profile.username }}
+                        {% if request.user.telegram_profile %}
+                            {% if request.user.telegram_profile.username %}
+                                <a href="https://t.me/{{ request.user.telegram_profile.username }}" target="_blank" style="color: inherit; text-decoration: none;">
+                                    @{{ request.user.telegram_profile.username }}
+                                </a>
+                            {% else %}
+                                #{{ request.user.telegram_profile.telegram_id }}
+                            {% endif %}
                         {% else %}
                             —
                         {% endif %}
                     </div>
                     <div class="dropdown-divider"></div>
-                    <a href="{% url 'todo:logout' %}" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i> Выйти
-                    </a>
+                    <form method="post" action="{% url 'todo:logout' %}" style="display: contents;">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item logout" style="background: none; border: none; width: 100%; text-align: left; padding: 10px 16px; cursor: pointer;">
+                            <i class="fas fa-sign-out-alt"></i> Выйти
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

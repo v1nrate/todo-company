@@ -36,16 +36,46 @@
                     <h3>{{ profile.first_name }} {{ profile.last_name }}</h3>
                     <p class="role">{{ profile.get_role_display }}</p>
 
-                    <!-- Только Telegram, по центру -->
-                    {% if profile.telegram_profile and profile.telegram_profile.username %}
-                        <div class="telegram-handle">
-                            <i class="fab fa-telegram-plane"></i> @{{ profile.telegram_profile.username }}
-                        </div>
-                    {% elif profile.telegram_profile %}
-                        <div class="telegram-handle">
-                            <i class="fab fa-telegram-plane"></i> ID: {{ profile.telegram_profile.telegram_id }}
-                        </div>
-                    {% endif %}
+                    <!-- Блок Telegram -->
+                    <div class="telegram-handle" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                        {% if profile.telegram_profile %}
+                            <!-- Привязан -->
+                            <div style="display: flex; align-items: center; gap: 8px; color: #1e293b;">
+                                {% if profile.telegram_profile.username %}
+                                    <i class="fab fa-telegram-plane"></i> @{{ profile.telegram_profile.username }}
+                                {% else %}
+                                    <i class="fab fa-telegram-plane"></i> ID: {{ profile.telegram_profile.telegram_id }}
+                                {% endif %}
+                            </div>
+
+                            <!-- Кнопка отвязки — только для себя -->
+                            {% if request.user == profile %}
+                                <form method="post" action="{% url 'todo:unlink_telegram' %}" style="width: 100%; margin-top: 8px;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-unbind" style="width: 100%; padding: 8px 16px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.85rem;">
+                                        <i class="fas fa-unlink" style="font-size: 0.9rem;"></i> Отвязать
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                        {% else %}
+                            <!-- Не привязан -->
+                            <div style="display: flex; align-items: center; gap: 8px; color: #9ca3af;">
+                                <i class="fas fa-bell-slash" style="font-size: 0.9rem;"></i>
+                                Не привязан
+                            </div>
+
+                            {% if request.user == profile %}
+                                <!-- Форма для генерации ссылки -->
+                                <form id="telegram-bind-form" method="post" action="{% url 'todo:generate_telegram_link' %}" style="width: 100%; margin-top: 8px;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-link" style="width: 100%; padding: 8px 16px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.85rem;">
+                                        <i class="fab fa-telegram-plane" style="font-size: 0.9rem;"></i> Привязать
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- Статистика -->
@@ -120,4 +150,44 @@
         </div>
     </main>
 </div>
+
+<script>
+document.getElementById('telegram-bind-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault(); // Останавливаем обычную отправку
+
+    const form = this;
+    const button = form.querySelector('button');
+    const botUsername = 'company_task_bot'; 
+
+    // Показываем загрузку
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Генерация...';
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.code) {
+            // Сразу переходим в Telegram
+            window.location.href = `https://t.me/${botUsername}?start=${data.code}`;
+        } else {
+            alert('Ошибка: ' + (data.error || 'не удалось создать ссылку'));
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
+    } catch (err) {
+        alert('Ошибка подключения');
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    }
+});
+</script>
 {% endblock %}

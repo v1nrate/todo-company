@@ -5,6 +5,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import authenticate, get_user_model
 from django.forms import inlineformset_factory
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -55,25 +56,17 @@ class CustomAuthenticationForm(AuthenticationForm):
 class TaskForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # Настройка виджета для deadline
+        if 'status' in self.fields:
+            del self.fields['status']
         self.fields['deadline'].widget = forms.DateTimeInput(
-            attrs={'type': 'datetime-local', 'required': True}
+            attrs={'type': 'datetime-local'},
+            format='%Y-%m-%dT%H:%M'
         )
-        
-        # Блокируем deadline при редактировании
-        if self.instance and self.instance.pk:
-            self.fields['deadline'].disabled = True
-        
-        # Фильтруем choices для status — оставляем только 'new' и 'in_progress'
-        self.fields['status'].choices = [
-            (choice, label) for choice, label in TaskModel.STATUS_CHOICES 
-            if choice in ['new', 'in_progress']
-        ]
-
+        self.fields['deadline'].input_formats = ['%Y-%m-%dT%H:%M']
+    
     class Meta:
         model = TaskModel
-        fields = ['title', 'description', 'assignee', 'deadline', 'priority', 'status']
+        fields = ['title', 'description', 'assignee', 'deadline', 'priority']
 
 class CommentForm(forms.ModelForm):
     class Meta:

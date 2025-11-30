@@ -1,3 +1,27 @@
-<!-- registration_done.html -->
-<h2>Почти готово!</h2>
-<p>Мы отправили письмо на ваш email. Пожалуйста, подтвердите аккаунт, чтобы продолжить.</p>
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Почти готово!{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="checkmark-icon">✓</div>
+        <h1>Почти готово!</h1>
+        <p class="subtitle">
+            Мы отправили письмо на ваш email.<br>
+            Пожалуйста, перейдите по ссылке в письме,<br>
+            чтобы подтвердить ваш аккаунт.
+        </p>
+
+        <div class="info-note">
+            <strong>Не пришло письмо?</strong><br>
+            Проверьте папку «Спам» или повторите отправку позже.
+        </div>
+
+        <div class="auth-links" style="margin-top: 1.5rem;">
+            <a href="{% url 'todo:login' %}">← Вернуться к входу</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -247,32 +247,6 @@ async def unlink(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Вы не были привязаны к аккаунту.")
 
-# === Уведомления о новых задачах ===
-
-async def notify_new_task(task_id):
-    try:
-        task = await sync_to_async(TaskModel.objects.select_related('assignee').get)(id=task_id)
-        if not task.assignee:
-            return
-
-        telegram_id = await get_assignee_telegram_id(task.assignee.id)
-        if not telegram_id:
-            return
-
-        bot = get_bot()
-        if not bot:
-            logger.warning("Bot not initialized — cannot send notification")
-            return
-
-        msg = (
-            f"🆕 *Новая задача!*\n\n"
-            f"*{task.title}*\n"
-            f"Дедлайн: {timezone.localtime(task.deadline).strftime('%d.%m.%Y %H:%M')}"
-        )
-        await bot.send_message(chat_id=telegram_id, text=msg, parse_mode="Markdown")
-    except Exception as e:
-        logger.error(f"Failed to send Telegram notification for task {task_id}: {e}")
-
 # === Регистрация обработчиков ===
 
 def register_handlers(application):

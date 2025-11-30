@@ -25,7 +25,6 @@
         <div class="task-header-actions">
             <h2 class="page-title">{{ task.title }}</h2>
             <div class="task-header-buttons">
-                <a href="{% url 'todo:task_update' task.pk %}" class="btn-action">Редактировать</a>
                 {% if task.status != 'completed' %}
                     <a href="{% url 'todo:task_complete' task.pk %}" class="btn-action">Завершить</a>
                 {% endif %}
@@ -53,10 +52,11 @@
                 <div class="task-card">
                     <div class="attachment-header">
                         <h3>Вложения ({{ task.files.count }})</h3>
-                        <form method="post" enctype="multipart/form-data" style="display: inline;">
+                        <!-- Кнопка справа -->
+                        <form method="post" enctype="multipart/form-data" style="margin: 0; padding: 0;">
                             {% csrf_token %}
                             <input type="file" name="files" id="upload-file-input" multiple style="display: none;" onchange="this.form.submit()">
-                            <label for="upload-file-input" class="btn btn-secondary btn-sm" style="cursor: pointer; margin-left: 8px;">
+                            <label for="upload-file-input" class="btn-attach-file" style="cursor: pointer;">
                                 Добавить файл
                             </label>
                         </form>

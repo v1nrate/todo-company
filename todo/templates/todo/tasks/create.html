@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="task-create-page">
+    <!-- Левое меню -->
     <aside class="sidebar">
         <div class="menu-section">
             <h3 class="section-title"><i class="fas fa-bars"></i> Меню</h3>
@@ -16,50 +17,64 @@
         </div>
     </aside>
 
+    <!-- Основной контент -->
     <main class="tasks-main">
         <h2 class="page-title">Создать задачу</h2>
 
         <div class="task-card">
-            <!-- ОБЫЧНАЯ ФОРМА — БЕЗ JS-ОТПРАВКИ -->
+            <!-- ПРОСТАЯ ФОРМА БЕЗ JS -->
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
 
-                <!-- Поля -->
+                <!-- Поле: Заголовок -->
                 <div class="form-group">
                     <label>Заголовок</label>
                     {{ form.title }}
                     {% if form.title.errors %}<div class="error">{{ form.title.errors }}</div>{% endif %}
                 </div>
 
+                <!-- Поле: Описание -->
                 <div class="form-group">
                     <label>Описание</label>
                     {{ form.description }}
                     {% if form.description.errors %}<div class="error">{{ form.description.errors }}</div>{% endif %}
                 </div>
 
+                <!-- Поле: Исполнитель -->
                 <div class="form-group">
                     <label>Исполнитель</label>
                     {{ form.assignee }}
                     {% if form.assignee.errors %}<div class="error">{{ form.assignee.errors }}</div>{% endif %}
                 </div>
 
+                <!-- Поле: Приоритет -->
                 <div class="form-group">
                     <label>Приоритет</label>
                     {{ form.priority }}
                     {% if form.priority.errors %}<div class="error">{{ form.priority.errors }}</div>{% endif %}
                 </div>
 
+                <!-- Поле: Дедлайн -->
                 <div class="form-group">
                     <label>Дедлайн</label>
                     {{ form.deadline }}
                     {% if form.deadline.errors %}<div class="error">{{ form.deadline.errors }}</div>{% endif %}
                 </div>
 
-                <!-- Файлы -->
+                <!-- Поле: Файлы -->
                 <div class="form-group">
                     <label>Файлы</label>
-                    <input type="file" name="files" multiple id="file-input">
-                    <div id="file-list"></div>
+
+                    <!-- Превью файлов -->
+                    <div id="file-preview" class="attachments-list" style="margin-top: 8px; margin-bottom: 12px;">
+                        <!-- Здесь будут файлы -->
+                    </div>
+
+                    <!-- Кнопка добавления (в стиле "Сохранить задачу") -->
+                    <input type="file" id="id_files" name="files" multiple style="display: none;" onchange="previewFiles(this)">
+                    <button type="button" class="btn btn--primary" onclick="document.getElementById('id_files').click()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                        Добавить файл
+                    </button>
                 </div>
 
                 <!-- Кнопки -->
@@ -68,34 +83,85 @@
                     <a href="{{ request.META.HTTP_REFERER|default:'/tasks/' }}" class="btn btn-outline-secondary">Отмена</a>
                 </div>
             </form>
+            <!-- ПОКАЗ ОБЩИХ ОШИБОК ФОРМЫ -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- ПОКАЗ ОШИБОК ПОЛЯ title -->
+            {% if form.title.errors %}
+                <div class="error">{{ form.title.errors }}</div>
+            {% endif %}
         </div>
     </main>
 </div>
 
 <script>
-let selectedFiles = [];
+function previewFiles(input) {
+    const preview = document.getElementById('file-preview');
+    preview.innerHTML = '';
 
-document.getElementById('file-input').addEventListener('change', function(e) {
-    const files = Array.from(e.target.files);
-    selected_files = selected_files.concat(files); // ❌ ОШИБКА: selected_files вместо selectedFiles!
-    renderFileList();
-    e.target.value = '';
-});
+    if (input.files.length === 0) return;
 
-function renderFileList() {
-    const list = document.getElementById('file-list');
-    list.innerHTML = '';
-    selectedFiles.forEach((file, index) => {
-        const item = document.createElement('div');
-        item.className = 'file-item';
-        item.innerHTML = `<span>${file.name}</span> <button type="button" onclick="removeFile(${index})">Удалить</button>`;
-        list.appendChild(item);
-    });
-}
+    for (let i = 0; i < input.files.length; i++) {
+        const file = input.files[i];
+        const container = document.createElement('div');
+        container.className = 'attachment-item';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.gap = '8px';
+        container.style.padding = '8px 12px';
+        container.style.background = '#f8fafc';
+        container.style.borderRadius = '6px';
+        container.style.marginTop = '4px';
+        container.style.border = '1px solid #e2e8f0';
 
-function removeFile(index) {
-    selectedFiles.splice(index, 1);
-    renderFileList();
+        // Иконка
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-paperclip';
+        icon.style.color = '#6b7280';
+        icon.style.fontSize = '0.9rem';
+        container.appendChild(icon);
+
+        // Название файла
+        const name = document.createElement('span');
+        name.textContent = file.name;
+        name.style.flex = '1';
+        name.style.overflow = 'hidden';
+        name.style.textOverflow = 'ellipsis';
+        name.style.whiteSpace = 'nowrap';
+        container.appendChild(name);
+
+        // Кнопка "Удалить"
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'Удалить';
+        removeBtn.className = 'btn-delete';
+        removeBtn.style.border = 'none';
+        removeBtn.style.background = 'transparent';
+        removeBtn.style.color = '#dc2626';
+        removeBtn.style.fontSize = '0.85rem';
+        removeBtn.style.padding = '0 4px';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.fontWeight = '500';
+        removeBtn.onclick = function() {
+            // Удаляем файл из списка
+            const dt = new DataTransfer();
+            const files = Array.from(input.files);
+            files.splice(i, 1);
+            files.forEach(f => dt.items.add(f));
+            input.files = dt.files;
+
+            // Обновляем превью
+            previewFiles(input);
+        };
+        container.appendChild(removeBtn);
+
+        preview.appendChild(container);
+    }
 }
 </script>
+
 {% endblock %}

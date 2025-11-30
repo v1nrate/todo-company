@@ -1,3 +1,4 @@
+import json
 import secrets
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -8,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView,TemplateView, UpdateView, DeleteView
+import requests
 from todo.forms import CommentForm, CustomUserCreationForm, TaskForm
 from .models import TaskFile, UserModel, TaskModel, TelegramUserModel
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -61,11 +63,30 @@ class TaskListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = TaskModel.objects.filter(
-            assignee=user,
-            status__in=['new', 'in_progress', 'overdue']
-        )
+        now = timezone.now()
 
+        # ШАГ 1: Обновляем статус "просроченных" задач
+        if user.role == 'employee':
+            # Обновляем только свои задачи
+            TaskModel.objects.filter(
+                assignee=user,
+                status__in=['new', 'in_progress'],  # Не завершённые
+                deadline__lt=now                    # Дедлайн прошёл
+            ).update(status='overdue')
+        else:
+            # Менеджер: обновляем все задачи
+            TaskModel.objects.filter(
+                status__in=['new', 'in_progress'],
+                deadline__lt=now
+            ).update(status='overdue')
+
+        # ШАГ 2: Получаем актуальные задачи
+        if user.role == 'employee':
+            queryset = TaskModel.objects.filter(assignee=user)
+        else:  # manager
+            queryset = TaskModel.objects.all()
+
+        # ШАГ 3: Сортировка (ваш код без изменений)
         sort_by = self.request.GET.get('sort', '-created_at')
         valid_sort_fields = [
             'title', '-title',
@@ -79,43 +100,36 @@ class TaskListView(LoginRequiredMixin, ListView):
             queryset = queryset.order_by(sort_by)
         else:
             queryset = queryset.order_by('-created_at')
-
+        
         return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Генерация календаря
-        today = datetime.now().date()
-        first_day_of_month = today.replace(day=1)
-        last_day_of_month = (first_day_of_month + timedelta(days=31)).replace(day=1) - timedelta(days=1)
-
-        # Собираем задачи по дням
-        tasks = self.get_queryset().filter(deadline__gte=first_day_of_month, deadline__lte=last_day_of_month)
-        calendar_tasks = defaultdict(list)
-        for task in tasks:
-            date_key = task.deadline.date()
-            calendar_tasks[date_key].append(task)
-
-        # Генерируем список дней месяца
-        days_in_month = []
-        current_day = first_day_of_month
-        while current_day <= last_day_of_month:
-            days_in_month.append(current_day)
-            current_day += timedelta(days=1)
-
-        context['calendar_days'] = {}
-        for day in days_in_month:
-            context['calendar_days'][day] = calendar_tasks[day]
-
-        context['today'] = today
-        return context
 
 @method_decorator(never_cache, name='dispatch')
 class TaskDetailView(DetailView):
     model = TaskModel
     template_name = 'todo/tasks/detail.html'
     context_object_name = 'task'
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        now = timezone.now()
+
+        # Автообновление статуса
+        updated = False
+
+        # 1. Если задача новая → в работу (только для исполнителя)
+        if self.object.assignee == request.user and self.object.status == 'new':
+            self.object.status = 'in_progress'
+            updated = True
+
+        # 2. Если задача не завершена и дедлайн прошёл → просрочена
+        if self.object.status != 'completed' and self.object.deadline < now:
+            self.object.status = 'overdue'
+            updated = True
+
+        if updated:
+            self.object.save(update_fields=['status'])
+
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -164,12 +178,57 @@ class TaskCreateView(LoginRequiredMixin, CreateView):
     form_class = TaskForm
 
     def form_valid(self, form):
-        form.instance.created_by = self.request.user  # ← auto-assign
-        task = form.save()
+        task = form.save(commit=False)
+        task.created_by = self.request.user
+
+            # 🔥 Явно делаем deadline aware, если он naive
+        if task.deadline and timezone.is_naive(task.deadline):
+            task.deadline = timezone.make_aware(task.deadline)
+
+        task.save()
+
+        # Обработка файлов
         files = self.request.FILES.getlist('files')
         for f in files:
             TaskFile.objects.create(task=task, file=f)
-        return super().form_valid(form)
+
+        # ✅ ОТПРАВЛЯЕМ ЗАДАЧУ В TELEGRAM
+        self.send_task_to_telegram(task)
+
+        return redirect('todo:task_detail', pk=task.pk)
+
+    def send_task_to_telegram(self, task):
+        # Получаем Telegram ID исполнителя
+        if not hasattr(task.assignee, 'telegram_profile') or not task.assignee.telegram_profile:
+            return  # Нет Telegram — не отправляем
+
+        telegram_id = task.assignee.telegram_profile.telegram_id
+
+        # Формируем сообщение
+        message = (
+            f"✅ Новая задача!\n"
+            f"• {task.title}\n"
+            f"Дедлайн: {task.deadline.strftime('%d.%m.%Y %H:%M')}\n"
+            f"Приоритет: {task.get_priority_display()}\n"
+            f"Описание: {task.description[:50]}..."
+        )
+
+        # Отправляем через API бота
+        with open("settings.json", "r", encoding="utf-8") as f:
+            settings=json.load(f)
+    
+        bot_token = settings['telegram_bot_token']  # ← замените на реальный токен
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            'chat_id': telegram_id,
+            'text': message,
+            'parse_mode': 'HTML'
+        }
+
+        try:
+            requests.post(url, data=payload, timeout=5)
+        except Exception as e:
+            print(f"Ошибка отправки в Telegram: {e}")
 
 class TaskHistoryListView(LoginRequiredMixin, ListView):
     model = TaskModel
@@ -179,12 +238,30 @@ class TaskHistoryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
+        now = timezone.now()  # ← ТЕКУЩЕЕ ВРЕМЯ
+
+        # ШАГ 1: Сначала обновляем статус "просроченных" задач
+        if user.role == 'employee':
+            # Обновляем только свои задачи
+            TaskModel.objects.filter(
+                assignee=user,
+                status__in=['new', 'in_progress'],  # Только НЕ завершённые
+                deadline__lt=now                    # Дедлайн в прошлом
+            ).update(status='overdue')
+        else:
+            # Менеджер: обновляем все задачи, которые можно просрочить
+            TaskModel.objects.filter(
+                status__in=['new', 'in_progress'],
+                deadline__lt=now
+            ).update(status='overdue')
+
+        # ШАГ 2: Теперь получаем задачи для отображения
         if user.role == 'employee':
             queryset = TaskModel.objects.filter(assignee=user)
         else:  # manager
             queryset = TaskModel.objects.all()
 
-        # Добавляем сортировку
+        # ШАГ 3: Сортировка (твой код без изменений)
         sort_by = self.request.GET.get('sort', '-created_at')
         valid_sort_fields = [
             'title', '-title',
@@ -192,12 +269,13 @@ class TaskHistoryListView(LoginRequiredMixin, ListView):
             'deadline', '-deadline',
             'status', '-status',
             'priority', '-priority',
-            'assignee__first_name', '-assignee__first_name'  # ← ДОБАВЛЕНО
+            'assignee__first_name', '-assignee__first_name'
         ]
         if sort_by in valid_sort_fields:
             queryset = queryset.order_by(sort_by)
         else:
             queryset = queryset.order_by('-created_at')
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -326,6 +404,7 @@ def get_tasks_json(request):
             'priority_display': task.get_priority_display(),
             'created_by__first_name': task.created_by.first_name if task.created_by else "—",
             'deadline': timezone.localtime(task.deadline).strftime('%d.%m.%Y %H:%M'),
+            'description': task.description or "",  # ← ДОБАВЛЯЕМ description
         }
         # Добавляем исполнителя ТОЛЬКО если пользователь — менеджер
         if request.user.role == 'manager':
@@ -345,21 +424,24 @@ def get_calendar_events(request):
     else:
         tasks = TaskModel.objects.filter(status__in=active_statuses)
 
+    # Цвета в соответствии с требованиями
+    priority_colors = {
+        'low': '#10b981',      # Зелёный
+        'medium': '#f59e0b',   # Жёлтый
+        'high': '#ef4444',     # Ярко-красный
+        'urgent': '#dc2626',   # Тёмно-красный
+    }
+
     events = []
     for task in tasks:
         events.append({
             'title': task.title,
-            'start': task.deadline.isoformat(),  # FullCalendar требует ISO 8601
+            'start': task.deadline.isoformat(),
             'url': reverse_lazy('todo:task_detail', args=[task.id]),
-            'backgroundColor': {
-                'urgent': '#dc3545',
-                'high': '#fd7e14',
-                'medium': '#ffc107',
-                'low': '#28a745'
-            }.get(task.priority, '#6c757d'),
+            'backgroundColor': priority_colors.get(task.priority, '#6c757d'),
             'borderColor': 'transparent',
         })
-    return JsonResponse(events, safe=False) 
+    return JsonResponse(events, safe=False)
 
 @login_required
 def complete_task(request, pk):

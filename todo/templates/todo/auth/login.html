@@ -4,47 +4,47 @@
 {% block title %}Авторизация{% endblock %}
 
 {% block content %}
-<div class="auth-form">
-    <h2>Войти в систему</h2>
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Добро пожаловать</h1>
+        <p class="subtitle">Войдите в свою учётную запись</p>
 
-    <!-- Ошибки формы (общие: неверный пароль и т.д.) -->
-    {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            {% for error in form.non_field_errors %}
-                {{ error }}
-            {% endfor %}
-        </div>
-    {% endif %}
+        <!-- Ошибки формы -->
+        {% if form.non_field_errors %}
+            <div class="alert alert--error">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
 
-    <!-- Сообщения от messages (например, после регистрации) -->
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
+        <form method="post" class="auth-form">
+            {% csrf_token %}
 
-    <form method="post">
-        {% csrf_token %}
-        <div>
-            <label for="{{ form.username.id_for_label }}">Username или Email:</label>
-            {{ form.username }}
-            {% if form.username.errors %}
-                <div class="alert alert-danger">{{ form.username.errors }}</div>
-            {% endif %}
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Логин или Email</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="form-error">{{ form.username.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Пароль</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <div class="form-error">{{ form.password.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn--primary">Войти</button>
+        </form>
+
+        <div class="auth-links">
+            <a href="{% url 'todo:register' %}">Регистрация</a> •
+            <a href="{% url 'todo:password_reset' %}">Забыли пароль?</a> •
+            <a href="{% url 'admin:index' %}">Админка</a>
         </div>
-        <div>
-            {{ form.password.label_tag }}
-            {{ form.password }}
-            {% if form.password.errors %}
-                <div class="alert alert-danger">{{ form.password.errors }}</div>
-            {% endif %}
-        </div>
-        <button type="submit">Войти</button>
-    </form>
-    <p><a href="{% url 'todo:register' %}">Регистрация</a></p>
-    <p><a href="{% url 'todo:password_reset' %}">Забыли пароль?</a></p>
-    <p><a href="{% url 'admin:index' %}">Войти как администратор</a></p>
+    </div>
 </div>
 {% endblock %}
