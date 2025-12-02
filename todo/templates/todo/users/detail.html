@@ -111,7 +111,7 @@
 
                 <div class="tasks-list">
                     {% for task in active_tasks %}
-                    <div class="task-card {% if task.status == 'overdue' %}task-overdue{% endif %}">
+                    <div class="task-card {% if task.status == 'overdue' %}task-overdue{% endif %}" data-task-id="{{ task.id }}">
                         <div class="task-header">
                             <div class="task-title">
                                 {% if task.status == 'overdue' %}
@@ -133,7 +133,6 @@
                             </div>
                             <!-- Кнопки справа внизу -->
                             <div class="task-actions">
-                                <a href="{% url 'todo:task_update' task.pk %}" class="btn btn-action">Редактировать</a>
                                 <a href="{% url 'todo:task_complete' task.pk %}" class="btn btn-action">Завершить</a>
                             </div>
                         </div>
@@ -187,6 +186,17 @@ document.getElementById('telegram-bind-form')?.addEventListener('submit', async 
         alert('Ошибка подключения');
         button.innerHTML = originalHTML;
         button.disabled = false;
+    }
+});
+
+document.querySelector('.tasks-list').addEventListener('click', function(e) {
+    const taskCard = e.target.closest('.task-card');
+    // Игнорируем клик по кнопке "Завершить"
+    if (e.target.closest('.btn-action') || e.target.closest('.task-actions')) {
+        return;
+    }
+    if (taskCard && taskCard.dataset.taskId) {
+        window.location.href = `/tasks/${taskCard.dataset.taskId}/`;
     }
 });
 </script>
