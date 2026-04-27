@@ -22,5 +22,5 @@
 git clone https://github.com/v1nrate/todo-company
 cd todo-company
 pip install -r requirements.txt
-python manage.py runserver
+python run_all.py
 ```
